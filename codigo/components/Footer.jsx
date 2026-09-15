@@ -3,12 +3,12 @@ import Image from "next/image";
 function Footer() {
   return (
     <>
-      
+      {/* Aplicamos el degradado de azul oscuro a celeste brillante */}
       <footer className="flex flex-col md:flex-row items-center justify-between p-6 bg-linear-to-r from-[#09203F] to-[#00B4D8] text-white gap-6 md:gap-4">
-        
+        {/* Sección Izquierda: Logo y Copyright */}
         <aside className="flex flex-col md:flex-row items-center gap-3 text-center md:text-left">
           <Image
-            src="/gatito.png"
+            src=""
             alt="Logo Anglo Electric"
             width={40}
             height={40}
@@ -17,10 +17,10 @@ function Footer() {
           <p>Copyright © {new Date().getFullYear()} - Todos los derechos reservados</p>
         </aside>
 
-        
+        {/* Sección Derecha: Redes Sociales */}
         <nav className="flex items-center gap-6">
           <a
-            href="PEGAR_AQUI_EL_LINK_DE_FACEBOOK_DEL_CLIENTE"
+            href="/codigo/public/gatito.png"
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-[#00fc82] transition-colors cursor-pointer"
