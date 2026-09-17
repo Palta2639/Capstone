@@ -1,0 +1,11 @@
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+
+SQLALCHEMY_DATABASE_URL = "postgresql://postgres:admin123@localhost:5432/anglo_electric_db"
+
+engine = create_engine(SQLALCHEMY_DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# ESTA ES LA LÍNEA QUE EL SISTEMA NO ENCUENTRA:
+Base = declarative_base()
