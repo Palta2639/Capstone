@@ -5,6 +5,24 @@ import models, schemas
 from database import engine, SessionLocal
 from fastapi import FastAPI, Depends
 from typing import List
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware  # 1. Agregamos esta importación
+
+app = FastAPI()
+
+# 2. Configuramos el "guardia de seguridad" (CORS)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # El "*" permite que cualquier frontend se conecte en etapa de desarrollo
+    allow_credentials=True,
+    allow_methods=["*"],  # Permite todos los métodos (GET para leer, POST para guardar, etc.)
+    allow_headers=["*"],  # Permite todo tipo de encabezados
+)
+
+# ... (Acá abajo se queda todo tu código tal cual lo tenías) ...
+@app.get("/")
+def read_root():
+    return {"estado": "¡El servidor está funcionando a la perfección!"}
 
 # Esto asegura que las tablas existan
 models.Base.metadata.create_all(bind=engine)
