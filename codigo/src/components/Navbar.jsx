@@ -2,15 +2,16 @@ import { BsCart2 } from "react-icons/bs";
 import { FiUser } from "react-icons/fi";
 import { MdOutlineSearch } from "react-icons/md";
 import Link from "next/link";
+import Image from "next/image";
 
 const navLinkClass =
   "text-[#ffffff] hover:text-[#00fc82] hover:bg-transparent focus:bg-transparent active:bg-transparent transition-colors duration-200";
 const navIconClass =
   "text-[#ffffff] hover:text-[#00fc82] hover:bg-transparent focus:bg-transparent active:bg-transparent transition-colors duration-200";
 
-function Navbar1() {
+function Navbar() {
   return (
-    <div className="navbar bg-[#0F2547] shadow-sm justify-between md:justify-start px-4">
+    <div className="navbar bg-linear-to-r from-[#09203F] to-[#00B4D8] shadow-sm justify-between md:justify-start px-4">
       <div className="flex items-center gap-2 md:gap-6">
         <div className="dropdown md:hidden">
           <div
@@ -48,7 +49,7 @@ function Navbar1() {
               </Link>
             </li>
             <li>
-              <Link className={navLinkClass} href="/kits">
+              <Link className={navLinkClass} href="/kits-instalacion">
                 Kits de instalacion
               </Link>
             </li>
@@ -60,10 +61,17 @@ function Navbar1() {
           </ul>
         </div>
 
-        <a className="text-xl md:text-2xl cursor-pointer hover:opacity-80 transition-opacity duration-200 whitespace-nowrap">
-          <span className="text-white font-semibold">Anglo</span>
-          <span className="text-[#00D2FF] font-semibold">Electric</span>
-        </a>
+        <Link href="/" className="cursor-pointer hover:opacity-80 transition-opacity duration-200">
+          <Image
+            src="/logo-anglo.png"
+            alt="Anglo Electric"
+            width={140}
+            height={40}
+            style={{ width: "auto" }}
+            className="h-6 object-contain"
+            priority
+          />
+        </Link>
       </div>
 
       <div className="hidden md:flex flex-1">
@@ -79,7 +87,7 @@ function Navbar1() {
             </Link>
           </li>
           <li>
-            <Link className={navLinkClass} href="/kits">
+            <Link className={navLinkClass} href="/kits-instalacion">
               Kits de instalacion
             </Link>
           </li>
@@ -105,15 +113,15 @@ function Navbar1() {
          
           <div
             tabIndex={0}
-            className="dropdown-content bg-linear-to-r from-[#0F2547] to-[#00D2FF] rounded-xl z-50 mt-4 w-64 md:w-80 p-3 shadow-xl border "
+            className="dropdown-content bg-linear-to-r from-[#0F2547] to-[#00fc82] rounded-xl z-50 mt-4 w-64 md:w-80 p-3 shadow-xl border "
           >
             <div className="flex gap-2">
               <input
                 type="text"
                 placeholder="Buscar componentes..."
-                className="input input-sm w-full bg-white text-black focus:outline-none focus:ring-2 focus:ring-[#00D2FF]"
+                className="input input-sm w-full bg-white text-black focus:outline-none focus:ring-2 focus:ring-[#00fc82]"
               />
-              <button className="btn btn-sm bg-[#0F2547] text-[#ffffff] hover:bg-[#00D2FF] hover:text-white border-none font-semibold transition-colors">
+              <button className="btn btn-sm bg-[#0F2547] text-[#ffffff] hover:bg-[#00fc82] hover:text-white border-none font-semibold transition-colors">
                 Ir
               </button>
             </div>
@@ -132,4 +140,4 @@ function Navbar1() {
   );
 }
 
-export default Navbar1;
+export default Navbar;
