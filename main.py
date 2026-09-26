@@ -3,6 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List
 from passlib.context import CryptContext
+import jwt
+from datetime import datetime, timedelta
+from fastapi import status # Para los códigos de error HTTP
 
 import models, schemas
 from database import engine, SessionLocal
@@ -30,6 +33,20 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def get_password_hash(password: str):
     return pwd_context.hash(password)
+
+# --- CONFIGURACIÓN DE SEGURIDAD JWT ---
+SECRET_KEY = "clave_secreta_para_anglo_electric" # En producción, esto se esconde
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 # El token durará 1 hora
+
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
+
+def create_access_token(data: dict):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 # Herramienta clave: Abre una conexión a la base de datos y luego la cierra.
 def get_db():
@@ -83,6 +100,23 @@ def crear_usuario(usuario: schemas.UsuarioCreate, db: Session = Depends(get_db))
     db.commit()
     db.refresh(nuevo_usuario)
     return nuevo_usuario
+
+@app.post("/login/", response_model=schemas.Token)
+def login(usuario: schemas.UsuarioLogin, db: Session = Depends(get_db)):
+    # 1. Buscamos si el correo existe en Neon
+    db_user = db.query(models.Usuario).filter(models.Usuario.email == usuario.email).first()
+    
+    # 2. Si no existe o la contraseña no coincide con el hash, rechazamos
+    if not db_user or not verify_password(usuario.password, db_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Correo o contraseña incorrectos"
+        )
+    
+    # 3. Si todo está correcto, le creamos su Token (pasaporte digital)
+    access_token = create_access_token(data={"sub": db_user.email, "rol_id": db_user.rol_id})
+    
+    return {"access_token": access_token, "token_type": "bearer"}
 
 # --- RUTAS DE PEDIDOS ---
 @app.post("/pedidos/", response_model=schemas.PedidoResponse)

@@ -110,3 +110,12 @@ class AgendaResponse(AgendaCreate):
 
     class Config:
         from_attributes = True
+
+# --- LOGIN Y TOKENS ---
+class UsuarioLogin(BaseModel):
+    email: str
+    password: str
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
