@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List
+from passlib.context import CryptContext
 
 import models, schemas
 from database import engine, SessionLocal
@@ -23,6 +24,12 @@ app.add_middleware(
     allow_methods=["*"],  
     allow_headers=["*"],  
 )
+
+# Configuración de seguridad para contraseñas
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def get_password_hash(password: str):
+    return pwd_context.hash(password)
 
 # Herramienta clave: Abre una conexión a la base de datos y luego la cierra.
 def get_db():
@@ -61,10 +68,14 @@ def obtener_producto_individual(producto_id: int, db: Session = Depends(get_db))
 # --- RUTAS DE USUARIOS ---
 @app.post("/usuarios/", response_model=schemas.UsuarioResponse)
 def crear_usuario(usuario: schemas.UsuarioCreate, db: Session = Depends(get_db)):
+    # 1. Encriptamos la contraseña original antes de tocar la base de datos
+    contrasena_encriptada = get_password_hash(usuario.password)
+    
+    # 2. Guardamos el usuario pasando el hash seguro a 'password_hash'
     nuevo_usuario = models.Usuario(
         nombre=usuario.nombre,
         email=usuario.email,
-        password_hash=usuario.password, 
+        password_hash=contrasena_encriptada, 
         telefono=usuario.telefono,
         rol_id=usuario.rol_id
     )
