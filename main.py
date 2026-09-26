@@ -105,3 +105,74 @@ def crear_agenda(agenda: schemas.AgendaCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(nueva_agenda)
     return nueva_agenda
+
+# --- RUTAS DE CATEGORIAS ---
+@app.post("/categorias/", response_model=schemas.CategoriaResponse)
+def crear_categoria(categoria: schemas.CategoriaCreate, db: Session = Depends(get_db)):
+    nueva_categoria = models.Categoria(
+        nombre=categoria.nombre,
+        descripcion=categoria.descripcion
+    )
+    db.add(nueva_categoria)
+    db.commit()
+    db.refresh(nueva_categoria)
+    return nueva_categoria
+
+@app.get("/categorias/", response_model=List[schemas.CategoriaResponse])
+def obtener_categorias(db: Session = Depends(get_db)):
+    categorias = db.query(models.Categoria).all()
+    return categorias
+
+# --- RUTAS DE COTIZACIONES ---
+@app.post("/cotizaciones/", response_model=schemas.CotizacionResponse)
+def crear_cotizacion(cotizacion: schemas.CotizacionCreate, db: Session = Depends(get_db)):
+    # Verificamos que el usuario que pide la cotización realmente exista
+    usuario = db.query(models.Usuario).filter(models.Usuario.id == cotizacion.usuario_id).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="El usuario no existe")
+
+    nueva_cotizacion = models.Cotizacion(
+        usuario_id=cotizacion.usuario_id,
+        consumo_kwh_mensual=cotizacion.consumo_kwh_mensual,
+        comuna=cotizacion.comuna,
+        presupuesto_estimado=cotizacion.presupuesto_estimado,
+        estado="pendiente"
+    )
+    db.add(nueva_cotizacion)
+    db.commit()
+    db.refresh(nueva_cotizacion)
+    return nueva_cotizacion
+
+@app.get("/cotizaciones/", response_model=List[schemas.CotizacionResponse])
+def obtener_cotizaciones(db: Session = Depends(get_db)):
+    cotizaciones = db.query(models.Cotizacion).all()
+    return cotizaciones
+
+# --- RUTAS DE ACTUALIZACIÓN Y BORRADO ---
+
+# 1. ACTUALIZAR (PUT): Cambiar el estado de una cotización
+@app.put("/cotizaciones/{cotizacion_id}", response_model=schemas.CotizacionResponse)
+def actualizar_estado_cotizacion(cotizacion_id: int, nuevo_estado: str, db: Session = Depends(get_db)):
+    # Buscamos la cotización
+    cotizacion = db.query(models.Cotizacion).filter(models.Cotizacion.id == cotizacion_id).first()
+    
+    if not cotizacion:
+        raise HTTPException(status_code=404, detail="Cotización no encontrada")
+    
+    # Actualizamos el estado y guardamos
+    cotizacion.estado = nuevo_estado
+    db.commit()
+    db.refresh(cotizacion)
+    return cotizacion
+
+# 2. ELIMINAR (DELETE): Borrar un producto del catálogo
+@app.delete("/productos/{producto_id}")
+def eliminar_producto(producto_id: int, db: Session = Depends(get_db)):
+    producto = db.query(models.Producto).filter(models.Producto.id == producto_id).first()
+    
+    if not producto:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+        
+    db.delete(producto)
+    db.commit()
+    return {"mensaje": f"El producto {producto.nombre} ha sido eliminado exitosamente"}
