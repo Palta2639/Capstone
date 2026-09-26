@@ -2,59 +2,111 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 
-# 1. Este modelo define lo que el Frontend nos debe ENVIAR para crear un producto
-class ProductoCreate(BaseModel):
-    nombre: str
-    descripcion: str
-    precio: float
-    stock: int = 0
-    es_kit: bool = False
-    imagen_url: Optional[str] = None
-
-# 2. Este modelo define lo que el Backend le RESPONDE al Frontend
-class ProductoResponse(ProductoCreate):
+# --- ROLES ---
+class RolResponse(BaseModel):
     id: int
+    nombre: str
 
     class Config:
-        from_attributes = True  # Esto permite que Pydantic lea la base de datos sin problemas
+        from_attributes = True
 
+# --- USUARIOS ---
 class UsuarioCreate(BaseModel):
     nombre: str
     email: str
     password: str
+    telefono: Optional[str] = None
+    rol_id: Optional[int] = 2
 
 class UsuarioResponse(BaseModel):
     id: int
     nombre: str
     email: str
-    rol: str
+    telefono: Optional[str]
+    rol_id: int
+    creado_en: datetime
 
     class Config:
         from_attributes = True
 
+# --- CATEGORIAS ---
+class CategoriaCreate(BaseModel):
+    nombre: str
+    descripcion: Optional[str] = None
+
+class CategoriaResponse(CategoriaCreate):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+# --- PRODUCTOS ---
+class ProductoCreate(BaseModel):
+    nombre: str
+    descripcion: Optional[str] = None
+    precio: int
+    stock: int = 0
+    potencia_watts: Optional[int] = None
+    categoria_id: Optional[int] = None
+    imagen_url: Optional[str] = None
+    es_kit: bool = False
+
+class ProductoResponse(ProductoCreate):
+    id: int
+    creado_en: datetime
+
+    class Config:
+        from_attributes = True
+
+# --- PEDIDOS ---
 class PedidoCreate(BaseModel):
     usuario_id: int
-    total: float
+    monto_total: int
 
-class PedidoResponse(BaseModel):
+class PedidoResponse(PedidoCreate):
     id: int
-    usuario_id: int
-    estado_pedido: str
-    total: float
-    fecha_creacion: datetime
+    estado: str
+    fecha_pedido: datetime
 
     class Config:
         from_attributes = True
 
+# --- DETALLE PEDIDOS ---
+class DetallePedidoCreate(BaseModel):
+    pedido_id: int
+    producto_id: int
+    cantidad: int
+    precio_unitario: int
+
+class DetallePedidoResponse(DetallePedidoCreate):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+# --- COTIZACIONES ---
+class CotizacionCreate(BaseModel):
+    usuario_id: int
+    consumo_kwh_mensual: float
+    comuna: Optional[str] = None
+    presupuesto_estimado: Optional[int] = None
+
+class CotizacionResponse(CotizacionCreate):
+    id: int
+    estado: str
+    fecha_solicitud: datetime
+
+    class Config:
+        from_attributes = True
+
+# --- AGENDA ---
 class AgendaCreate(BaseModel):
     pedido_id: int
     fecha_instalacion: datetime
 
-class AgendaResponse(BaseModel):
+class AgendaResponse(AgendaCreate):
     id: int
-    pedido_id: int
-    fecha_instalacion: datetime
-    estado_agenda: str
+    estado_agenda: Optional[str] = None
 
     class Config:
         from_attributes = True
