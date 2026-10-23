@@ -53,10 +53,10 @@ erDiagram
 
 El diseño gráfico del modelo entidad-relación está disponible en formato visual:
 
-![Diagrama ERD de la Base de Datos](Esquema%20DBML.png)
+![Diagrama ERD de la Base de Datos](./database/Esquema%20DBML.png)
 
 ---
 
 ## 🧪 Pruebas e Integración (Postman)
 
-En el directorio `database/` se encuentra el archivo `postman_collection.json`, el cual contiene las peticiones HTTP (GET y POST) precargadas para probar el consumo de la API conectada a Neon PostgreSQL.
+En el directorio `database/` se encuentra el archivo `Postman_collection.json`, el cual contiene las peticiones HTTP (GET y POST) precargadas para probar el consumo de la API conectada a Neon PostgreSQL.
