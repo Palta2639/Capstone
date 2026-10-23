@@ -55,9 +55,9 @@ export default function Inicio() {
     <main className="container mx-auto px-4 py-8 max-w-7xl">
       <section className="flex flex-col md:flex-row items-stretch gap-6 md:gap-8 mb-24 min-h-112.5 md:min-h-125">
         
-        {/* Resumen - Estilo Futurista */}
+        {/* Resumen de la empresa */}
         <div className="order-2 md:order-1 flex-1 flex flex-col justify-center p-8 md:p-12 rounded-3xl transition-all duration-500 bg-white/40 backdrop-blur-xl border border-gray-200/50 hover:border-[#00fc82]/80 hover:shadow-[0_0_40px_rgba(0,252,130,0.25)] text-[#0F2547] group relative overflow-hidden shadow-lg">
-          {/* Fondo animado futurista al hacer hover */}
+          
           <div className="absolute inset-0 bg-linear-to-br from-[#09203F] to-[#00B4D8] opacity-0 group-hover:opacity-100 transition-opacity duration-700 -z-10"></div>
           
           <h1 className="text-4xl md:text-5xl font-extrabold mb-6 group-hover:text-white transition-colors duration-500 drop-shadow-sm">
