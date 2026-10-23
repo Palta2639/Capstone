@@ -1,0 +1,73 @@
+{
+  "info": {
+    "name": "Anglo Electric - API & Base de Datos (Neon PostgreSQL)",
+    "description": "Colección de peticiones de prueba para verificar la comunicación entre la API y la base de datos relacional.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Productos",
+      "item": [
+        {
+          "name": "Obtener todos los productos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/productos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "productos"]
+            }
+          }
+        },
+        {
+          "name": "Crear nuevo producto (Ej: Taladro)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Taladro Inalámbrico 20V\",\n  \"descripcion\": \"Taladro percutor con 2 baterías de litio\",\n  \"precio\": 85000,\n  \"stock\": 15,\n  \"es_kit\": false,\n  \"potencia_watts\": 750,\n  \"categoria_id\": null,\n  \"imagen_url\": \"https://ejemplo.com/imagenes/taladro.jpg\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/productos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "productos"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cotizaciones",
+      "item": [
+        {
+          "name": "Crear solicitud de cotización",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuario_id\": 1,\n  \"consumo_kwh_mensual\": 350.50,\n  \"comuna\": \"Viña del Mar\",\n  \"presupuesto_estimado\": 1200000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/cotizaciones",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cotizaciones"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
