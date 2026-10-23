@@ -1,0 +1,68 @@
+// Especificación DBML para Anglo Electric - Neon PostgreSQL
+
+Table roles {
+  id integer [pk, increment]
+  nombre varchar(50) [not null, unique]
+}
+
+Table usuarios {
+  id integer [pk, increment]
+  nombre varchar(100) [not null]
+  email varchar(100) [not null, unique]
+  password_hash varchar(255) [not null]
+  telefono varchar(20)
+  rol_id integer [default: 2, ref: > roles.id]
+  creado_en timestamp [default: `CURRENT_TIMESTAMP`]
+}
+
+Table categorias {
+  id integer [pk, increment]
+  nombre varchar(100) [not null]
+  descripcion text
+}
+
+Table productos {
+  id integer [pk, increment]
+  nombre varchar(150) [not null]
+  descripcion text
+  precio integer [not null]
+  stock integer [not null, default: 0]
+  potencia_watts integer
+  categoria_id integer [ref: > categorias.id]
+  imagen_url text
+  creado_en timestamp [default: `CURRENT_TIMESTAMP`]
+  es_kit boolean [default: false]
+}
+
+Table pedidos {
+  id integer [pk, increment]
+  usuario_id integer [ref: > usuarios.id]
+  monto_total integer [not null]
+  estado varchar(50) [default: 'pendiente']
+  fecha_pedido timestamp [default: `CURRENT_TIMESTAMP`]
+}
+
+Table detalle_pedidos {
+  id integer [pk, increment]
+  pedido_id integer [ref: > pedidos.id]
+  producto_id integer [ref: > productos.id]
+  cantidad integer [not null]
+  precio_unitario integer [not null]
+}
+
+Table cotizaciones {
+  id integer [pk, increment]
+  usuario_id integer [ref: > usuarios.id]
+  consumo_kwh_mensual numeric(10,2) [not null]
+  comuna varchar(100)
+  presupuesto_estimado integer
+  estado varchar(50) [default: 'pendiente']
+  fecha_solicitud timestamp [default: `CURRENT_TIMESTAMP`]
+}
+
+Table agenda {
+  id integer [pk, increment]
+  pedido_id integer [ref: > pedidos.id]
+  fecha_instalacion timestamp
+  estado_agenda varchar
+}
