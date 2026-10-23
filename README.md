@@ -23,14 +23,14 @@ La base de datos fue diseñada para dar soporte al e-commerce y dimensionador so
 
 El modelo cuenta con **8 tablas principales** interconectadas mediante relaciones de integridad referencial:
 
-1. **`roles`**: Definición de permisos y niveles de acceso (Ej: Administración, Cliente).
-2. **`usuarios`**: Registro de usuarios con contraseña encriptada (`password_hash`), teléfono y vinculación con rol.
-3. **`categorias`**: Clasificación de productos (Paneles solares, Inversores, Baterías, Kits completos, etc.).
-4. **`productos`**: Inventario de equipos fotovoltaicos con especificaciones técnicas (potencia en Watts, precio, stock, imagen y distinción de kits).
-5. **`pedidos`**: Registro de compras realizadas por los usuarios y seguimiento del estado del pedido.
-6. **`detalle_pedidos`**: Tabla intermedia que vincula los productos comprados dentro de cada pedido con sus precios unitarios.
-7. **`cotizaciones`**: Solicitudes de presupuesto basadas en consumo energético mensual (`kwh`), ubicación geográfica (comuna) y estimaciones.
-8. **`agenda`**: Coordinación de fechas de instalación asignadas a los pedidos finalizados.
+1. `Roles`: Definición de permisos y niveles de acceso (Ej: Administración, Cliente).
+2. `Usuarios`: Registro de usuarios con contraseña encriptada (`password_hash`), teléfono y vinculación con rol.
+3. `Categorías`: Clasificación de productos (Paneles solares, Inversores, Baterías, Kits completos, etc.).
+4. `Productos`: Inventario de equipos fotovoltaicos con especificaciones técnicas (potencia en Watts, precio, stock, imagen y distinción de kits).
+5. `Pedidos`: Registro de compras realizadas por los usuarios y seguimiento del estado del pedido.
+6. `Detalle_Pedidos`: Tabla intermedia que vincula los productos comprados dentro de cada pedido con sus precios unitarios.
+7. `Cotizaciones`: Solicitudes de presupuesto basadas en consumo energético mensual (`kwh`), ubicación geográfica (`comuna`) y estimaciones.
+8. `Agenda`: Coordinación de fechas de instalación asignadas a los pedidos finalizados.
 
 ---
 
