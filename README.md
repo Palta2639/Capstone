@@ -34,7 +34,7 @@ El modelo cuenta con **8 tablas principales** interconectadas mediante relacione
 
 ---
 
-## 📐 Diagrama Entidad-Relación (Mermaid)
+📐 Diagrama Entidad-Relación (Mermaid)
 
 ```mermaid
 erDiagram
@@ -45,6 +45,7 @@ erDiagram
     pedidos ||--o{ detalle_pedidos : "contiene"
     productos ||--o{ detalle_pedidos : "incluye"
     pedidos ||--o{ agenda : "programa_instalacion"
+```
 
 ---
 
