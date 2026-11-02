@@ -1,0 +1,24 @@
+# Archivos de entorno y credenciales (seguridad)
+.env
+.env.local
+.env.production
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+
+# Configuraciones de editor e IDEs
+.vscode/
+.idea/
+
+# Carpetas de dependencias y logs
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Archivos temporales y compilados
+*.pyc
+__pycache__/
+dist/
+build/
