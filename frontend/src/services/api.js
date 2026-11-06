@@ -1,13 +1,14 @@
 import axios from 'axios';
 
-// Deteccion dinamica para evitar bloqueos por discrepancia localhost vs 127.0.0.1
+// Detección dinámica para evitar bloqueos por discrepancia localhost vs 127.0.0.1
 const getBaseUrl = () => {
   if (process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL;
   }
   if (typeof window !== 'undefined') {
-    const host = window.location.hostname || 'localhost';
-    return `http://${host}:8000`;
+    const hostname = window.location.hostname || 'localhost';
+    // Se conecta al puerto 8000 usando la misma IP exacta (ej. 26.52.51.231)
+    return `http://${hostname}:8000`;
   }
   return 'http://localhost:8000';
 };
@@ -94,8 +95,16 @@ export const categoryService = {
 // --- SERVICIOS DE AUTENTICACIÓN ---
 export const authService = {
   login: async (email, password) => {
-    // FastAPI expects form-data for standard OAuth2 but we configured it to accept JSON in login (schemas.UsuarioLogin)
-    const response = await api.post('/login/', { email, password });
+    // AHORA ENVIAMOS LOS DATOS COMO FORM-DATA PARA CUMPLIR CON OAUTH2 Y SWAGGER
+    const formData = new URLSearchParams();
+    formData.append('username', email);
+    formData.append('password', password);
+
+    const response = await api.post('/login/', formData, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    });
     return response.data; // Retorna { access_token, token_type }
   },
   
@@ -167,7 +176,3 @@ export const iaService = {
     return response.data;
   }
 };
-
-
-
-

@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 import html
+import re  # Se requiere para la validacion del password
 
 # --- ROLES ---
 class RolResponse(BaseModel):
@@ -15,9 +16,22 @@ class RolResponse(BaseModel):
 class UsuarioCreate(BaseModel):
     nombre: str
     email: str
-    password: str
+    password: str = Field(..., min_length=9, description="La contraseña debe tener al menos 9 caracteres")
     telefono: Optional[str] = None
     rol_id: Optional[int] = 2
+
+    @field_validator('password')
+    @classmethod
+    def validar_seguridad_password(cls, v: str) -> str:
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('La contraseña debe contener al menos una letra mayúscula')
+        if not re.search(r'[a-z]', v):
+            raise ValueError('La contraseña debe contener al menos una letra minúscula')
+        if not re.search(r'\d', v):
+            raise ValueError('La contraseña debe contener al menos un número')
+        if not re.search(r'[!@#$%^&*(),.?":{}|<>\-_\+=]', v):
+            raise ValueError('La contraseña debe contener al menos un carácter especial o símbolo')
+        return v
 
 class UsuarioResponse(BaseModel):
     id: int
@@ -75,6 +89,34 @@ class PedidoResponse(PedidoCreate):
 
     class Config:
         from_attributes = True
+
+# --- AÑADIDO PARA EL FRONTEND ADMIN DASHBOARD ---
+class PedidoAdminResponse(BaseModel):
+    id: int
+    cliente: str
+    email: str
+    telefono: str
+    fecha: str
+    monto_total: int
+    estado: str
+
+    class Config:
+        from_attributes = True
+
+# --- AÑADIDO PARA LAS TARJETAS DEL DASHBOARD ---
+class EstadisticasDashboard(BaseModel):
+    total_ingresos: int
+    costos_estimados: int
+    margen_neto: int
+    porcentaje_margen: float
+    total_pedidos: int
+    total_cotizaciones: int
+    ticket_promedio: int
+    tasa_conversion: float
+    valor_inventario: int
+    total_unidades_stock: int
+    total_productos: int
+    total_categorias: int
 
 # --- DETALLE PEDIDOS ---
 class DetallePedidoCreate(BaseModel):

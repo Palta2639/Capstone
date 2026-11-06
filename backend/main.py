@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordBearer
 from core.database import engine
 import models
 from routers import auth, usuarios, productos, categorias, cotizaciones, pedidos, ia
@@ -7,12 +8,15 @@ from routers import auth, usuarios, productos, categorias, cotizaciones, pedidos
 # Crear tablas en la base de datos si no existen
 models.Base.metadata.create_all(bind=engine)
 
+# Definir el esquema OAuth2 para que el botón "Authorize" de Swagger funcione correctamente
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
 app = FastAPI(
     title="Anglo Electric API",
     description="Backend modular para e-commerce y recomendador de kits solares"
 )
 
-# Configuracion de CORS flexible para desarrollo y produccion
+# Configuración de CORS flexible para desarrollo, red local y producción
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -23,9 +27,11 @@ app.add_middleware(
         "http://localhost:3002",
         "http://127.0.0.1:3002",
         "http://localhost:8000",
-        "http://127.0.0.1:8000"
+        "http://127.0.0.1:8000",
+        "http://26.52.51.231:3000"
     ],
-    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$",
+    # Expresión regular ampliada para permitir cualquier IP local, Radmin, Hamachi o dominio
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1|26\.\d+\.\d+\.\d+|\[::1\])(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -65,6 +65,23 @@ class Pedido(Base):
     detalles = relationship("DetallePedido", back_populates="pedido")
     agendas = relationship("Agenda", back_populates="pedido")
 
+    # ----- PROPIEDADES AÑADIDAS PARA EL FRONTEND ADMIN DASHBOARD -----
+    @property
+    def cliente(self):
+        return self.usuario.nombre if self.usuario else "Desconocido"
+
+    @property
+    def email(self):
+        return self.usuario.email if self.usuario else ""
+
+    @property
+    def telefono(self):
+        return self.usuario.telefono if self.usuario and self.usuario.telefono else ""
+
+    @property
+    def fecha(self):
+        return self.fecha_pedido.strftime("%Y-%m-%d") if self.fecha_pedido else ""
+
 class DetallePedido(Base):
     __tablename__ = "detalle_pedidos"
 
