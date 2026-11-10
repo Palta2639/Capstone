@@ -1,1029 +1,1227 @@
 "use client";
 
 import { useState } from "react";
-import { 
-  FiMapPin, 
-  FiZap, 
-  FiSun, 
-  FiBatteryCharging, 
-  FiCheck, 
-  FiArrowRight, 
-  FiArrowLeft, 
-  FiUser, 
-  FiMail, 
-  FiPhone, 
-  FiCpu, 
-  FiTrendingUp, 
-  FiShield, 
+import {
+  FiMapPin,
+  FiZap,
+  FiSun,
+  FiBatteryCharging,
+  FiCheck,
+  FiArrowRight,
+  FiArrowLeft,
+  FiUser,
+  FiMail,
+  FiPhone,
+  FiCpu,
   FiRotateCcw,
-  FiShoppingBag
+  FiShoppingBag,
 } from "react-icons/fi";
+
+import api from "@/src/services/api";
 import { useCart } from "@/src/context/CartContext";
 import { formatearMoneda } from "@/src/utils/formatters";
-import { buscarComunasChile, COMUNAS_CHILE } from "@/src/utils/chileData";
-import { cotizacionService } from "@/src/services/api";
-import { 
-  sanitizeName, 
-  sanitizeEmail, 
-  sanitizePhone, 
-  sanitizeComuna, 
-  validateCotizacionField 
+import {
+  buscarComunasChile,
+  COMUNAS_CHILE,
+} from "@/src/utils/chileData";
+import {
+  sanitizeName,
+  sanitizeEmail,
+  sanitizePhone,
+  sanitizeComuna,
+  validateCotizacionField,
 } from "@/src/utils/validations";
 
-// Comunas chilenas frecuentes para sugerencias rápidas
 const COMUNAS_DESTACADAS = [
-  "Santiago", "Las Condes", "Colina", "Chicureo", "Lampa", 
-  "Rancagua", "Viña del Mar", "Valparaíso", "La Serena", 
-  "Antofagasta", "Concepción", "Temuco", "Talca", "Curicó"
+  "Quilpué",
+  "Viña del Mar",
+  "Valparaíso",
+  "Santiago",
+  "Colina",
+  "Rancagua",
+  "La Serena",
 ];
 
 const TIPOS_PROPIEDAD = [
-  { id: "casa", titulo: "Casa Residencial", desc: "Vivienda particular urbana o suburbana" },
-  { id: "parcela", titulo: "Parcela / Campo", desc: "Zonas rurales o con amplio terreno" },
-  { id: "comercial", titulo: "Comercio / Taller", desc: "Locales comerciales, oficinas o pymes" },
-  { id: "industrial", titulo: "Agro / Industrial", desc: "Bodegas, galpones o faenas productivas" }
+  {
+    id: "casa",
+    titulo: "Casa residencial",
+    descripcion: "Vivienda particular urbana o suburbana.",
+  },
+  {
+    id: "parcela",
+    titulo: "Parcela / Campo",
+    descripcion: "Zonas rurales o terrenos amplios.",
+  },
+  {
+    id: "comercial",
+    titulo: "Comercio / Taller",
+    descripcion: "Locales comerciales, oficinas o pymes.",
+  },
+  {
+    id: "industrial",
+    titulo: "Agro / Industrial",
+    descripcion: "Bodegas, galpones o instalaciones productivas.",
+  },
 ];
 
 const TIPOS_TECHO = [
-  { id: "zinc", titulo: "Zinc o Chapa Metálica", desc: "Instalación rápida con estructura coplanar" },
-  { id: "teja", titulo: "Teja Colonial / Asfáltica", desc: "Fijaciones especiales para evitar filtraciones" },
-  { id: "losa", titulo: "Losa Plana de Hormigón", desc: "Estructuras trianguladas con inclinación óptima" },
-  { id: "suelo", titulo: "Sobre Suelo / Terreno", desc: "Estructuras montadas en tierra libre de sombras" }
+  {
+    id: "zinc",
+    titulo: "Zinc o chapa metálica",
+    descripcion: "Cubierta metálica.",
+  },
+  {
+    id: "teja",
+    titulo: "Teja",
+    descripcion: "Cubierta de tejas.",
+  },
+  {
+    id: "losa",
+    titulo: "Losa de hormigón",
+    descripcion: "Superficie de hormigón.",
+  },
+  {
+    id: "suelo",
+    titulo: "Sobre suelo",
+    descripcion: "Instalación proyectada en terreno.",
+  },
 ];
 
 const OBJETIVOS_SISTEMA = [
-  { 
-    id: "ahorro_red", 
-    titulo: "On-Grid (Reducir Factura)", 
-    desc: "Conectado a la red de distribución. Ahorras de día y vendes excedentes (Ley Net Billing 20.571).",
-    icono: FiSun
+  {
+    id: "ahorro_red",
+    titulo: "On-Grid",
+    descripcion:
+      "Sistema conectado a la red. El ahorro requiere una evaluación adicional.",
+    icono: FiSun,
   },
-  { 
-    id: "hibrido", 
-    titulo: "Híbrido (Ahorro + Baterías)", 
-    desc: "Ahorro continuo en la cuenta y respaldo automático de energía ante cortes de luz.",
-    icono: FiBatteryCharging
+  {
+    id: "hibrido",
+    titulo: "Híbrido",
+    descripcion:
+      "Sistema con almacenamiento. La autonomía requiere validación técnica.",
+    icono: FiBatteryCharging,
   },
-  { 
-    id: "off_grid", 
-    titulo: "Off-Grid (100% Aislado)", 
-    desc: "Para sitios sin tendido eléctrico. Opera con banco de baterías y opcional grupo electrógeno.",
-    icono: FiZap
-  }
+  {
+    id: "off_grid",
+    titulo: "Off-Grid",
+    descripcion:
+      "Sistema aislado. El balance mensual no garantiza autonomía.",
+    icono: FiZap,
+  },
 ];
+
+const PASOS = [
+  { numero: 1, nombre: "Ubicación" },
+  { numero: 2, nombre: "Consumo" },
+  { numero: 3, nombre: "Sistema" },
+  { numero: 4, nombre: "Contacto" },
+];
+
+const DATOS_INICIALES = {
+  comuna: "",
+  region: "",
+  tipo_propiedad: "casa",
+  tipo_techo: "zinc",
+  gasto_mensual_clp: 75000,
+  consumo_kwh_mensual: 350,
+  tipo_red: "monofasico",
+  objetivo_sistema: "ahorro_red",
+  presupuesto_max_clp: "",
+  superficie_disponible_m2: "",
+  nombre: "",
+  email: "",
+  telefono: "",
+};
+
+const CLASE_INPUT =
+  "w-full rounded-xl border border-gray-300 bg-white px-4 py-3 " +
+  "text-gray-900 outline-none focus:border-emerald-500";
+
+const CLASE_PRIMARIO =
+  "inline-flex items-center justify-center gap-2 rounded-xl " +
+  "bg-[#0F2547] px-6 py-3 font-bold text-white " +
+  "hover:bg-[#18385f] disabled:opacity-50";
+
+const CLASE_SECUNDARIO =
+  "inline-flex items-center justify-center gap-2 rounded-xl " +
+  "border border-gray-300 px-6 py-3 font-semibold text-gray-700 " +
+  "hover:bg-gray-100 disabled:opacity-50";
+
+function Opciones({ opciones, seleccionado, onSeleccionar }) {
+  return (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      {opciones.map((opcion) => {
+        const activo = seleccionado === opcion.id;
+
+        return (
+          <button
+            key={opcion.id}
+            type="button"
+            aria-pressed={activo}
+            onClick={() => onSeleccionar(opcion.id)}
+            className={`rounded-2xl border p-4 text-left transition-colors ${
+              activo
+                ? "border-[#0F2547] bg-[#0F2547] text-white"
+                : "border-gray-200 bg-gray-50 text-gray-800 hover:bg-gray-100"
+            }`}
+          >
+            <span className="block font-bold">{opcion.titulo}</span>
+
+            <span
+              className={`mt-1 block text-xs ${
+                activo ? "text-gray-300" : "text-gray-500"
+              }`}
+            >
+              {opcion.descripcion}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function ErrorCampo({ mensaje }) {
+  if (!mensaje) return null;
+
+  return (
+    <p role="alert" className="mt-2 text-sm text-red-600">
+      {mensaje}
+    </p>
+  );
+}
 
 export default function CotizadorIA() {
   const { agregarAlCarrito } = useCart();
-  const [kitAgregado, setKitAgregado] = useState(false);
+
   const [paso, setPaso] = useState(1);
+  const [formData, setFormData] = useState(DATOS_INICIALES);
+  const [errores, setErrores] = useState({});
+  const [errorKNN, setErrorKNN] = useState("");
   const [analizando, setAnalizando] = useState(false);
   const [resultado, setResultado] = useState(null);
+  const [kitAgregado, setKitAgregado] = useState(false);
 
-  // Datos del formulario estructurados para el backend
-  const [formData, setFormData] = useState({
-    // Paso 1: Ubicacion e Inmueble
-    comuna: "",
-    region: "",
-    tipo_propiedad: "casa",
-    tipo_techo: "zinc",
-    // Paso 2: Consumo
-    gasto_mensual_clp: 75000,
-    consumo_kwh_mensual: 350,
-    tipo_red: "monofasico", // monofasico | trifasico
-    // Paso 3: Sistema
-    objetivo_sistema: "ahorro_red", // ahorro_red | hibrido | off_grid
-    presupuesto_estimado: "estandar", // economico | estandar | premium | por_definir
-    // Paso 4: Contacto
-    nombre: "",
-    email: "",
-    telefono: ""
-  });
-
-  const [busquedaComuna, setBusquedaComuna] = useState("");
   const [sugerenciasComunas, setSugerenciasComunas] = useState([]);
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
 
-  const [errores, setErrores] = useState({});
-
-  // Manejar cambio en el input de comuna predictivo con sanitizacion anti-inyeccion
-  const handleComunaInputChange = (e) => {
-    const valor = sanitizeComuna(e.target.value);
-    setBusquedaComuna(valor);
-    setFormData(prev => ({ ...prev, comuna: valor, region: "" }));
-
-    if (valor.trim().length >= 1) {
-      const resultados = buscarComunasChile(valor, 6);
-      setSugerenciasComunas(resultados);
-      setMostrarSugerencias(true);
-    } else {
-      setSugerenciasComunas([]);
-      setMostrarSugerencias(false);
-    }
-
-    if (errores.comuna) {
-      setErrores(prev => ({ ...prev, comuna: validateCotizacionField("comuna", valor) }));
-    }
-  };
-
-  const handleComunaBlur = () => {
-    setTimeout(() => {
-      setMostrarSugerencias(false);
-      const error = validateCotizacionField("comuna", formData.comuna);
-      setErrores(prev => ({ ...prev, comuna: error }));
-    }, 200);
-  };
-
-  // Manejar cambios en campos de contacto con sanitizacion en tiempo real
-  const handleContactChange = (field, rawValue) => {
-    let sanitizedValue = rawValue;
-    if (field === "nombre") sanitizedValue = sanitizeName(rawValue);
-    if (field === "email") sanitizedValue = sanitizeEmail(rawValue);
-    if (field === "telefono") sanitizedValue = sanitizePhone(rawValue);
-
-    setFormData(prev => ({ ...prev, [field]: sanitizedValue }));
-
-    if (errores[field]) {
-      setErrores(prev => ({ ...prev, [field]: validateCotizacionField(field, sanitizedValue) }));
-    }
-  };
-
-  const handleContactBlur = (field) => {
-    const error = validateCotizacionField(field, formData[field]);
-    setErrores(prev => ({ ...prev, [field]: error }));
-  };
-
-  // Clases dinamicas de feedback visual estilo useAuthForm
-  const getFieldClasses = (field) => {
-    if (errores[field]) {
-      return "border-red-500 focus:border-red-500 focus:ring-red-500";
-    }
-    if (formData[field] && !errores[field]) {
-      return "border-emerald-500 focus:border-emerald-500 focus:ring-emerald-500";
-    }
-    return "border-gray-200 focus:border-[#00fc82] focus:ring-[#00fc82]";
-  };
-
-  // Seleccionar comuna sugerida
-  const seleccionarComuna = (item) => {
-    setFormData(prev => ({
-      ...prev,
-      comuna: sanitizeComuna(item.comuna),
-      region: sanitizeComuna(item.region)
+  const actualizarCampo = (campo, valor) => {
+    setFormData((anterior) => ({
+      ...anterior,
+      [campo]: valor,
     }));
-    setBusquedaComuna(item.comuna);
-    setMostrarSugerencias(false);
-    setErrores(prev => ({ ...prev, comuna: "" }));
+
+    setErrores((anteriores) => ({
+      ...anteriores,
+      [campo]: "",
+    }));
+
+    setErrorKNN("");
   };
 
-  // Seleccionar comuna rapida de botones frecuentes
-  const seleccionarComunaRapida = (nombreComuna) => {
-    const comunaLimpia = sanitizeComuna(nombreComuna);
-    const encontrada = COMUNAS_CHILE.find(
-      c => c.comuna.toLowerCase() === comunaLimpia.toLowerCase()
+  const buscarComuna = (valorIngresado) => {
+    const valor = sanitizeComuna(valorIngresado);
+
+    setFormData((anterior) => ({
+      ...anterior,
+      comuna: valor,
+      region: "",
+    }));
+
+    setErrores((anteriores) => ({
+      ...anteriores,
+      comuna: "",
+    }));
+
+    setSugerenciasComunas(
+      valor.trim() ? buscarComunasChile(valor, 6) : []
     );
-    if (encontrada) {
-      seleccionarComuna(encontrada);
-    } else {
-      setFormData(prev => ({ ...prev, comuna: comunaLimpia }));
-      setBusquedaComuna(comunaLimpia);
-      setErrores(prev => ({ ...prev, comuna: "" }));
-    }
+
+    setMostrarSugerencias(Boolean(valor.trim()));
   };
 
-  // Sincronizar consumo kWh aproximado al mover el gasto en CLP
-  const handleGastoChange = (clp) => {
-    const valorNum = Math.max(0, Math.min(20000000, Number(clp) || 0));
-    const kwhCalculado = Math.round(valorNum / 190);
-    setFormData(prev => ({
-      ...prev,
-      gasto_mensual_clp: valorNum,
-      consumo_kwh_mensual: kwhCalculado
+  const seleccionarComuna = (item) => {
+    setFormData((anterior) => ({
+      ...anterior,
+      comuna: sanitizeComuna(item.comuna),
+      region: sanitizeComuna(item.region || ""),
+    }));
+
+    setMostrarSugerencias(false);
+    setSugerenciasComunas([]);
+
+    setErrores((anteriores) => ({
+      ...anteriores,
+      comuna: "",
     }));
   };
 
-  const validarPaso = (numeroPaso) => {
-    const errs = {};
+  const seleccionarComunaRapida = (nombre) => {
+    const encontrada = COMUNAS_CHILE.find(
+      (item) => item.comuna.toLowerCase() === nombre.toLowerCase()
+    );
+
+    seleccionarComuna(
+      encontrada || {
+        comuna: nombre,
+        region: "",
+      }
+    );
+  };
+
+  const cambiarGasto = (valor) => {
+    const gasto = Number(valor);
+
+    // Aproximación de demostración, no una tarifa verificada.
+    const consumoEstimado = Math.round(gasto / 190);
+
+    setFormData((anterior) => ({
+      ...anterior,
+      gasto_mensual_clp: gasto,
+      consumo_kwh_mensual: consumoEstimado,
+    }));
+
+    setErrores((anteriores) => ({
+      ...anteriores,
+      consumo_kwh_mensual: "",
+    }));
+
+    setErrorKNN("");
+  };
+
+  const cambiarContacto = (campo, valor) => {
+    let limpio = valor;
+
+    if (campo === "nombre") limpio = sanitizeName(valor);
+    if (campo === "email") limpio = sanitizeEmail(valor);
+    if (campo === "telefono") limpio = sanitizePhone(valor);
+
+    actualizarCampo(campo, limpio);
+  };
+
+  const obtenerErroresPaso = (numeroPaso) => {
+    const nuevosErrores = {};
+
     if (numeroPaso === 1) {
-      const comunaErr = validateCotizacionField("comuna", formData.comuna);
-      if (comunaErr) errs.comuna = comunaErr;
+      const error = validateCotizacionField("comuna", formData.comuna);
+
+      if (error) nuevosErrores.comuna = error;
     }
+
+    if (numeroPaso === 2) {
+      const consumo = Number(formData.consumo_kwh_mensual);
+
+      if (!Number.isFinite(consumo) || consumo < 30 || consumo > 1500) {
+        nuevosErrores.consumo_kwh_mensual =
+          "Ingresa un consumo de 30 a 1500 kWh al mes.";
+      }
+
+      if (formData.tipo_red === "trifasico") {
+        nuevosErrores.tipo_red =
+          "Este catálogo no tiene compatibilidad trifásica validada. " +
+          "Se necesita evaluación técnica.";
+      }
+    }
+
+    if (numeroPaso === 3) {
+      if (String(formData.presupuesto_max_clp).trim() !== "") {
+        const presupuesto = Number(formData.presupuesto_max_clp);
+
+        if (!Number.isSafeInteger(presupuesto) || presupuesto <= 0) {
+          nuevosErrores.presupuesto_max_clp =
+            "Ingresa un presupuesto positivo en pesos enteros.";
+        }
+      }
+
+      if (String(formData.superficie_disponible_m2).trim() !== "") {
+        const superficie = Number(formData.superficie_disponible_m2);
+
+        if (!Number.isFinite(superficie) || superficie <= 0) {
+          nuevosErrores.superficie_disponible_m2 =
+            "Ingresa una superficie mayor que cero.";
+        }
+      }
+    }
+
     if (numeroPaso === 4) {
-      const nombreErr = validateCotizacionField("nombre", formData.nombre);
-      const emailErr = validateCotizacionField("email", formData.email);
-      const telefonoErr = validateCotizacionField("telefono", formData.telefono);
-      if (nombreErr) errs.nombre = nombreErr;
-      if (emailErr) errs.email = emailErr;
-      if (telefonoErr) errs.telefono = telefonoErr;
+      // Contacto opcional: solo se valida si tiene contenido.
+      for (const campo of ["nombre", "email", "telefono"]) {
+        if (formData[campo].trim()) {
+          const error = validateCotizacionField(campo, formData[campo]);
+
+          if (error) nuevosErrores[campo] = error;
+        }
+      }
     }
-    setErrores(errs);
-    return Object.keys(errs).length === 0;
+
+    return nuevosErrores;
   };
 
   const siguientePaso = () => {
-    if (validarPaso(paso)) {
-      setPaso(p => Math.min(4, p + 1));
+    const nuevosErrores = obtenerErroresPaso(paso);
+
+    setErrores(nuevosErrores);
+    setErrorKNN("");
+
+    if (Object.keys(nuevosErrores).length === 0) {
+      setPaso((actual) => Math.min(actual + 1, 4));
     }
   };
 
   const anteriorPaso = () => {
-    setPaso(p => Math.max(1, p - 1));
+    setErrorKNN("");
+    setErrores({});
+    setPaso((actual) => Math.max(actual - 1, 1));
   };
 
-  const calcularCotizacionIA = async (e) => {
-    e.preventDefault();
-    if (!validarPaso(4)) return;
+  const calcularCotizacionIA = async (event) => {
+    event.preventDefault();
 
-    setAnalizando(true);
+    if (analizando) return;
 
-    // Lista blanca estricta de opciones para neutralizar manipulacion de parametros
-    const VALID_PROPIEDADES = ["casa", "parcela", "comercial", "industrial"];
-    const VALID_TECHOS = ["zinc", "teja", "losa", "suelo"];
-    const VALID_REDES = ["monofasico", "trifasico"];
-    const VALID_OBJETIVOS = ["ahorro_red", "hibrido", "off_grid"];
-    const VALID_PRESUPUESTOS = ["economico", "estandar", "premium", "por_definir"];
+    setErrorKNN("");
+    setResultado(null);
+    setKitAgregado(false);
 
-    // Estructura de carga util preparada y sanitizada para el backend
-    const payloadParaBackend = {
-      comuna: sanitizeComuna(formData.comuna),
-      region: sanitizeComuna(formData.region),
-      tipo_propiedad: VALID_PROPIEDADES.includes(formData.tipo_propiedad) ? formData.tipo_propiedad : "casa",
-      tipo_techo: VALID_TECHOS.includes(formData.tipo_techo) ? formData.tipo_techo : "zinc",
-      consumo_kwh_mensual: Math.max(1, Math.min(50000, Number(formData.consumo_kwh_mensual) || 350)),
-      gasto_mensual_clp: Math.max(10000, Math.min(20000000, Number(formData.gasto_mensual_clp) || 75000)),
-      tipo_red: VALID_REDES.includes(formData.tipo_red) ? formData.tipo_red : "monofasico",
-      objetivo_sistema: VALID_OBJETIVOS.includes(formData.objetivo_sistema) ? formData.objetivo_sistema : "ahorro_red",
-      presupuesto_estimado: VALID_PRESUPUESTOS.includes(formData.presupuesto_estimado) ? formData.presupuesto_estimado : "estandar",
-      contacto: {
-        nombre: sanitizeName(formData.nombre),
-        email: sanitizeEmail(formData.email),
-        telefono: sanitizePhone(formData.telefono)
-      }
-    };
+    for (let numeroPaso = 1; numeroPaso <= 4; numeroPaso += 1) {
+      const nuevosErrores = obtenerErroresPaso(numeroPaso);
 
-    console.log("PAYLOAD ENVIADO A BACKEND API:", JSON.stringify(payloadParaBackend, null, 2));
-
-    try {
-      // 1. Intento de comunicacion con el endpoint del Backend
-      const respuestaBackend = await cotizacionService.solicitarCotizacionIA(payloadParaBackend);
-      if (respuestaBackend && respuestaBackend.potenciaRealKwp) {
-        setResultado(respuestaBackend);
-        setAnalizando(false);
-        setPaso(5);
+      if (Object.keys(nuevosErrores).length > 0) {
+        setErrores(nuevosErrores);
+        setPaso(numeroPaso);
         return;
       }
-    } catch (error) {
-      console.warn("Backend no disponible o en preparacion, usando calculo preliminar en cliente:", error?.message);
     }
 
-    // 2. Fallback de calculo de ingenieria preliminar si el backend esta desconectado
-    setTimeout(() => {
-      // Horas de Sol Pico promedio en Chile central: 4.8 HSP
-      const hsp = 4.8;
-      const factorRendimiento = 0.80; // 80% rendimiento global del sistema
-      const consumoDiarioKwh = formData.consumo_kwh_mensual / 30;
-      const potenciaKwRequerida = Number((consumoDiarioKwh / (hsp * factorRendimiento)).toFixed(1));
-      
-      // Paneles de 550W
-      const wattsPorPanel = 550;
-      const cantidadPaneles = Math.max(4, Math.ceil((potenciaKwRequerida * 1000) / wattsPorPanel));
-      const potenciaRealKwp = Number(((cantidadPaneles * wattsPorPanel) / 1000).toFixed(2));
-      
-      // Ahorro mensual estimado (hasta 85% en on-grid)
-      const porcentajeAhorro = formData.objetivo_sistema === "off_grid" ? 100 : 85;
-      const ahorroMensualClp = Math.round(formData.gasto_mensual_clp * (porcentajeAhorro / 100));
-      const ahorroAnualClp = ahorroMensualClp * 12;
+    setErrores({});
+    setAnalizando(true);
 
-      // Inversor sugerido
-      let inversorSugerido = `${Math.ceil(potenciaKwRequerida)} kW On-Grid ${formData.tipo_red === "trifasico" ? "Trifásico" : "Monofásico"}`;
-      if (formData.objetivo_sistema === "hibrido") {
-        inversorSugerido = `${Math.ceil(potenciaKwRequerida)} kW Híbrido con respaldo`;
-      } else if (formData.objetivo_sistema === "off_grid") {
-        inversorSugerido = `${Math.ceil(potenciaKwRequerida)} kW Off-Grid Aislado`;
+    const payload = {
+      consumo_kwh_mensual: Number(formData.consumo_kwh_mensual),
+      objetivo_sistema: formData.objetivo_sistema,
+      tipo_red: formData.tipo_red,
+
+      // Supuestos del prototipo; no se calculan desde la comuna.
+      hsp: 4.8,
+      cobertura_objetivo: 1,
+
+      presupuesto_max_clp:
+        String(formData.presupuesto_max_clp).trim() === ""
+          ? null
+          : Number(formData.presupuesto_max_clp),
+
+      superficie_disponible_m2:
+        String(formData.superficie_disponible_m2).trim() === ""
+          ? null
+          : Number(formData.superficie_disponible_m2),
+    };
+
+    try {
+      const { data } = await api.post("/cotizaciones/knn", payload);
+
+      const camposNumericos = [
+        "precio_clp",
+        "stock",
+        "potencia_kwp",
+        "cantidad_paneles",
+        "superficie_estimada_m2",
+        "energia_mensual_estimada_kwh",
+      ];
+
+      const respuestaValida =
+        Number.isInteger(data?.producto_id) &&
+        data.producto_id > 0 &&
+        typeof data.nombre === "string" &&
+        data.nombre.trim() !== "" &&
+        camposNumericos.every((campo) => Number.isFinite(data[campo])) &&
+        data.precio_clp > 0 &&
+        data.stock > 0 &&
+        data.potencia_kwp > 0;
+
+      if (!respuestaValida) {
+        throw new Error(
+          "La API no devolvió un kit válido. Revisa /cotizaciones/knn."
+        );
       }
 
-      // Espacio requerido (aprox 2.3 m2 por panel de 550W)
-      const superficieTechoRequerida = Math.round(cantidadPaneles * 2.3);
-
-      setResultado({
-        potenciaKwRequerida,
-        potenciaRealKwp,
-        cantidadPaneles,
-        superficieTechoRequerida,
-        inversorSugerido,
-        bateriaSugerida: formData.objetivo_sistema !== "ahorro_red" ? "Batería Litio 5.12 kWh LiFePO4" : null,
-        ahorroMensualClp,
-        ahorroAnualClp,
-        retornoInversionAnios: 3.8,
-        co2EvitadoToneladas: Number((potenciaRealKwp * 0.95).toFixed(1))
-      });
-
-      setAnalizando(false);
+      setResultado(data);
       setPaso(5);
-    }, 1200);
+    } catch (error) {
+      const detalle = error.response?.data?.detail;
+
+      if (error.response?.status === 404) {
+        setErrorKNN(
+          "No se encontró /cotizaciones/knn. Agrega la ruta del modelo " +
+            "en el backend y reinicia el servidor."
+        );
+      } else if (typeof detalle === "string") {
+        setErrorKNN(detalle);
+      } else if (Array.isArray(detalle)) {
+        setErrorKNN(
+          detalle
+            .map(
+              (item) =>
+                `${item.loc?.slice(1).join(".") || "Datos"}: ${item.msg}`
+            )
+            .join(" | ")
+        );
+      } else if (error.response) {
+        setErrorKNN(
+          "El servidor no pudo completar la recomendación. " +
+            "Revisa la terminal del backend."
+        );
+      } else if (error.request) {
+        setErrorKNN(
+          "No se pudo contactar con el backend. Revisa que esté " +
+            "funcionando y que la URL de la API sea correcta."
+        );
+      } else {
+        setErrorKNN(error.message || "No se pudo obtener la recomendación.");
+      }
+    } finally {
+      setAnalizando(false);
+    }
   };
 
   const reiniciarCotizador = () => {
     setPaso(1);
     setResultado(null);
+    setErrorKNN("");
+    setErrores({});
+    setKitAgregado(false);
+  };
+
+  const agregarKitAlCarrito = () => {
+    if (!resultado || kitAgregado) return;
+
+    agregarAlCarrito(
+      {
+        id: resultado.producto_id,
+        nombre: resultado.nombre,
+        descripcion:
+          "Kit de prueba recomendado por KNN. Requiere validación técnica.",
+        precio: resultado.precio_clp,
+        stock: resultado.stock,
+        potencia_watts: Math.round(resultado.potencia_kwp * 1000),
+        es_kit: true,
+        imagen_url: resultado.imagen_url || "",
+      },
+      1
+    );
+
+    setKitAgregado(true);
   };
 
   return (
-    <div className="max-w-4xl mx-auto my-8 px-4">
-      
-      {/* Encabezado */}
-      <div className="text-center mb-10">
-        <span className="inline-block text-xs font-extrabold uppercase tracking-widest text-[#0F2547] bg-[#00fc82]/25 px-3 py-1 rounded-full mb-3">
-          Dimensionamiento Inteligente
+    <div className="mx-auto my-8 max-w-4xl px-4">
+      <header className="mb-8 text-center">
+        <span className="inline-block rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold uppercase tracking-widest text-emerald-800">
+          Recomendador solar KNN
         </span>
-        <h1 className="text-3xl md:text-5xl font-extrabold text-[#0F2547] tracking-tight">
-          Cotizador Solar con Inteligencia Artificial
-        </h1>
-        <p className="text-gray-600 mt-3 max-w-2xl mx-auto text-sm md:text-base">
-          Ingresa los parámetros de tu propiedad y consumo eléctrico. Nuestra IA calcula la radiación de tu zona y dimensiona el kit solar exacto para maximizar tu ahorro.
-        </p>
-      </div>
 
-      {/* Barra de Pasos (1 a 4) */}
+        <h1 className="mt-4 text-3xl font-extrabold text-[#0F2547] md:text-4xl">
+          Cotizador de kits solares
+        </h1>
+
+        <p className="mx-auto mt-3 max-w-2xl text-sm text-gray-600">
+          Prototipo entrenado con perfiles simulados. Utiliza tu consumo
+          eléctrico y el tipo de sistema para recomendar un kit del catálogo.
+        </p>
+      </header>
+
+      {errorKNN && (
+        <div
+          role="alert"
+          className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700"
+        >
+          {errorKNN}
+        </div>
+      )}
+
       {paso <= 4 && (
-        <div className="mb-10">
+        <div className="mb-8">
           <div className="grid grid-cols-4 gap-2">
-            {[
-              { num: 1, label: "Ubicación" },
-              { num: 2, label: "Consumo" },
-              { num: 3, label: "Sistema" },
-              { num: 4, label: "Contacto" }
-            ].map((p) => {
-              const completado = paso > p.num;
-              const actual = paso === p.num;
+            {PASOS.map((item) => {
+              const completado = paso > item.numero;
+              const activo = paso === item.numero;
+
               return (
-                <div key={p.num} className="flex flex-col items-center text-center">
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs transition-all ${
-                    actual 
-                      ? "bg-[#0F2547] text-white ring-4 ring-[#00fc82]/30" 
-                      : completado 
-                      ? "bg-[#00fc82] text-[#0F2547]" 
-                      : "bg-gray-100 text-gray-400"
-                  }`}>
-                    {completado ? <FiCheck size={16} /> : p.num}
+                <div
+                  key={item.numero}
+                  className="flex flex-col items-center text-center"
+                >
+                  <div
+                    className={`flex h-10 w-10 items-center justify-center rounded-full font-bold ${
+                      activo
+                        ? "bg-[#0F2547] text-white"
+                        : completado
+                          ? "bg-[#00fc82] text-[#0F2547]"
+                          : "bg-gray-100 text-gray-500"
+                    }`}
+                  >
+                    {completado ? <FiCheck /> : item.numero}
                   </div>
-                  <span className={`text-[11px] font-bold mt-1.5 transition-colors ${
-                    actual ? "text-[#0F2547]" : "text-gray-400"
-                  }`}>
-                    {p.label}
+
+                  <span className="mt-2 text-xs font-semibold text-gray-600">
+                    {item.nombre}
                   </span>
                 </div>
               );
             })}
           </div>
-          <div className="w-full bg-gray-200 h-1.5 rounded-full mt-4 overflow-hidden">
-            <div 
-              className="bg-[#00fc82] h-full transition-all duration-300" 
+
+          <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-gray-200">
+            <div
+              className="h-full bg-[#00fc82] transition-all"
               style={{ width: `${((paso - 1) / 3) * 100}%` }}
-            ></div>
+            />
           </div>
         </div>
       )}
 
-      {/* Contenedor del Formulario */}
-      <div className="bg-white rounded-3xl p-6 md:p-10 shadow-xl border border-gray-100">
-        
-        {/* ================= PASO 1: UBICACION E INMUEBLE ================= */}
+      <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-xl md:p-10">
+        {/* PASO 1: UBICACIÓN */}
         {paso === 1 && (
-          <div className="space-y-8">
+          <div className="space-y-7">
             <div>
-              <h2 className="text-xl md:text-2xl font-bold text-[#0F2547]">
-                ¿Dónde se instalará el sistema solar?
+              <h2 className="text-2xl font-bold text-[#0F2547]">
+                ¿Dónde se instalará el sistema?
               </h2>
-              <p className="text-xs text-gray-500 mt-1">
-                Tu comuna nos permite saber cuánto sol recibe tu zona al día para calcular con precisión la energía que generarán tus paneles.
+
+              <p className="mt-2 text-sm text-gray-600">
+                La ubicación y las características del inmueble se conservan
+                como referencia en pantalla. Esta versión no las utiliza para
+                calcular radiación ni dimensionar la estructura.
               </p>
             </div>
 
-            {/* Input Comuna Predictivo */}
             <div className="relative">
-              <label className="text-xs font-bold uppercase tracking-wider text-gray-600 block mb-2">
-                Comuna o Ciudad de Instalación
+              <label
+                htmlFor="comuna-knn"
+                className="mb-2 block text-sm font-semibold text-gray-700"
+              >
+                Comuna
               </label>
+
               <div className="relative">
-                <FiMapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                <FiMapPin className="absolute left-3 top-4 text-gray-400" />
+
                 <input
+                  id="comuna-knn"
                   type="text"
-                  placeholder="Escribe tu comuna (ej. Colina, Las Condes, Chillán, Rancagua...)"
-                  value={busquedaComuna}
+                  value={formData.comuna}
                   maxLength={60}
-                  onChange={handleComunaInputChange}
+                  autoComplete="off"
+                  placeholder="Ej. Quilpué"
+                  onChange={(event) => buscarComuna(event.target.value)}
                   onFocus={() => {
-                    if (busquedaComuna.trim().length >= 1) {
+                    if (formData.comuna.trim()) {
+                      setSugerenciasComunas(
+                        buscarComunasChile(formData.comuna, 6)
+                      );
                       setMostrarSugerencias(true);
                     }
                   }}
-                  onBlur={handleComunaBlur}
-                  autoComplete="off"
-                  className={`w-full pl-11 pr-4 py-3 bg-gray-50 text-gray-900 placeholder:text-gray-400 rounded-2xl border text-sm outline-none transition-all ${getFieldClasses("comuna")}`}
+                  onBlur={() => setMostrarSugerencias(false)}
+                  className={`${CLASE_INPUT} pl-10`}
                 />
               </div>
 
-              {/* Menu desplegable predictivo estilo Google Places */}
               {mostrarSugerencias && sugerenciasComunas.length > 0 && (
-                <div className="absolute z-50 left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden divide-y divide-gray-100">
+                <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
                   {sugerenciasComunas.map((item) => (
                     <button
                       key={`${item.comuna}-${item.region}`}
                       type="button"
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        seleccionarComuna(item);
-                      }}
-                      className="w-full text-left px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => seleccionarComuna(item)}
+                      className="block w-full px-4 py-3 text-left hover:bg-gray-50"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-[#00fc82]/20 flex items-center justify-center text-[#0F2547]">
-                          <FiMapPin size={16} />
-                        </div>
-                        <div>
-                          <span className="font-bold text-sm text-[#0F2547] block">
-                            {item.comuna}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            {item.region}
-                          </span>
-                        </div>
-                      </div>
-                      <span className="text-[10px] font-bold text-gray-600 bg-gray-100 px-2 py-1 rounded-md">
-                        Chile
+                      <span className="block font-semibold text-gray-900">
+                        {item.comuna}
+                      </span>
+
+                      <span className="text-xs text-gray-500">
+                        {item.region}
                       </span>
                     </button>
                   ))}
                 </div>
               )}
 
-              {/* Indicador de Comuna y Region confirmada */}
-              {formData.comuna && formData.region && (
-                <div className="mt-2.5 flex items-center gap-2 text-xs text-gray-600 bg-emerald-50/70 py-1.5 px-3 rounded-xl border border-emerald-200 w-fit">
-                  <FiCheck className="text-emerald-700 font-bold" />
-                  <span>Comuna: <strong className="text-[#0F2547]">{formData.comuna}</strong></span>
-                  <span className="text-gray-300">|</span>
-                  <span>Región: <strong className="text-[#0F2547]">{formData.region}</strong></span>
-                </div>
+              <ErrorCampo mensaje={errores.comuna} />
+
+              {formData.region && (
+                <p className="mt-2 text-xs text-emerald-700">
+                  Región: {formData.region}
+                </p>
               )}
 
-              {errores.comuna && (
-                <p className="text-red-500 text-xs font-bold mt-1.5">{errores.comuna}</p>
-              )}
-
-              {/* Sugerencias rapidas de comunas */}
-              <div className="flex flex-wrap gap-1.5 mt-3">
-                <span className="text-[11px] text-gray-400 self-center mr-1">Frecuentes:</span>
-                {COMUNAS_DESTACADAS.slice(0, 7).map((c) => (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {COMUNAS_DESTACADAS.map((nombre) => (
                   <button
-                    key={c}
+                    key={nombre}
                     type="button"
-                    onClick={() => seleccionarComunaRapida(c)}
-                    className="text-[11px] font-semibold px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors cursor-pointer"
+                    onClick={() => seleccionarComunaRapida(nombre)}
+                    className="rounded-lg bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-200"
                   >
-                    {c}
+                    {nombre}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Tipo de Inmueble */}
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-gray-600 block mb-3">
-                Tipo de Propiedad
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {TIPOS_PROPIEDAD.map((t) => {
-                  const seleccionado = formData.tipo_propiedad === t.id;
-                  return (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, tipo_propiedad: t.id })}
-                      className={`text-left p-4 rounded-2xl border transition-all cursor-pointer ${
-                        seleccionado
-                          ? "bg-[#0F2547] text-white border-[#0F2547] shadow-md"
-                          : "bg-gray-50 text-gray-800 border-gray-200 hover:bg-gray-100"
-                      }`}
-                    >
-                      <h3 className="font-bold text-sm">{t.titulo}</h3>
-                      <p className={`text-xs mt-1 leading-relaxed ${seleccionado ? "text-gray-300" : "text-gray-500"}`}>
-                        {t.desc}
-                      </p>
-                    </button>
-                  );
-                })}
-              </div>
+              <h3 className="mb-3 font-semibold text-gray-700">
+                Tipo de propiedad
+              </h3>
+
+              <Opciones
+                opciones={TIPOS_PROPIEDAD}
+                seleccionado={formData.tipo_propiedad}
+                onSeleccionar={(valor) =>
+                  actualizarCampo("tipo_propiedad", valor)
+                }
+              />
             </div>
 
-            {/* Tipo de Techo */}
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-gray-600 block mb-3">
-                Superficie / Tipo de Techo
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {TIPOS_TECHO.map((tech) => {
-                  const seleccionado = formData.tipo_techo === tech.id;
-                  return (
-                    <button
-                      key={tech.id}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, tipo_techo: tech.id })}
-                      className={`text-left p-4 rounded-2xl border transition-all cursor-pointer ${
-                        seleccionado
-                          ? "bg-[#0F2547] text-white border-[#0F2547] shadow-md"
-                          : "bg-gray-50 text-gray-800 border-gray-200 hover:bg-gray-100"
-                      }`}
-                    >
-                      <h3 className="font-bold text-sm">{tech.titulo}</h3>
-                      <p className={`text-xs mt-1 leading-relaxed ${seleccionado ? "text-gray-300" : "text-gray-500"}`}>
-                        {tech.desc}
-                      </p>
-                    </button>
-                  );
-                })}
-              </div>
+              <h3 className="mb-3 font-semibold text-gray-700">
+                Tipo de techo o superficie
+              </h3>
+
+              <Opciones
+                opciones={TIPOS_TECHO}
+                seleccionado={formData.tipo_techo}
+                onSeleccionar={(valor) =>
+                  actualizarCampo("tipo_techo", valor)
+                }
+              />
             </div>
 
-            <div className="flex justify-end pt-4 border-t border-gray-100">
+            <div className="flex justify-end border-t pt-5">
               <button
                 type="button"
                 onClick={siguientePaso}
-                className="btn bg-[#0F2547] text-white hover:bg-[#00fc82] hover:text-[#0F2547] border-none font-bold rounded-xl px-8 shadow-lg cursor-pointer"
+                className={CLASE_PRIMARIO}
               >
-                Siguiente Paso <FiArrowRight className="ml-2" />
+                Siguiente <FiArrowRight />
               </button>
             </div>
           </div>
         )}
 
-        {/* ================= PASO 2: CONSUMO ELECTRICO ================= */}
+        {/* PASO 2: CONSUMO */}
         {paso === 2 && (
-          <div className="space-y-8">
+          <div className="space-y-7">
             <div>
-              <h2 className="text-xl md:text-2xl font-bold text-[#0F2547]">
-                ¿Cuánto consumes de energía eléctrica?
+              <h2 className="text-2xl font-bold text-[#0F2547]">
+                ¿Cuánta electricidad consumes?
               </h2>
-              <p className="text-xs text-gray-500 mt-1">
-                Con tu gasto mensual la IA dimensiona los Watts necesarios para reemplazar la compra a la distribuidora.
+
+              <p className="mt-2 text-sm text-gray-600">
+                Usa preferentemente el consumo en kWh de tu boleta.
+                El gasto monetario solo permite una aproximación.
               </p>
             </div>
 
-            {/* Slider de Gasto en CLP */}
-            <div className="bg-gray-50 p-6 rounded-2xl border border-gray-200">
-              <div className="flex justify-between items-center mb-4">
-                <span className="text-xs font-bold uppercase tracking-wider text-gray-500">
-                  Gasto Promedio Mensual en Boleta
-                </span>
-                <span className="text-2xl font-extrabold text-[#0F2547]">
-                  {formatearMoneda(formData.gasto_mensual_clp)}
-                </span>
-              </div>
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+              <label
+                htmlFor="gasto-knn"
+                className="block font-semibold text-gray-700"
+              >
+                Gasto mensual aproximado
+              </label>
+
+              <p className="mt-2 text-2xl font-bold text-[#0F2547]">
+                {formatearMoneda(formData.gasto_mensual_clp)}
+              </p>
 
               <input
+                id="gasto-knn"
                 type="range"
                 min="20000"
                 max="500000"
                 step="5000"
                 value={formData.gasto_mensual_clp}
-                onChange={(e) => handleGastoChange(e.target.value)}
-                className="range range-success w-full"
+                onChange={(event) => cambiarGasto(event.target.value)}
+                className="mt-4 w-full accent-emerald-500"
               />
 
-              <div className="flex justify-between text-xs text-gray-400 font-semibold mt-2">
-                <span>$20.000 CLP</span>
-                <span>$250.000 CLP</span>
-                <span>$500.000+ CLP</span>
+              <div className="mt-1 flex justify-between text-xs text-gray-500">
+                <span>$20.000</span>
+                <span>$500.000</span>
               </div>
 
-              {/* Equivalente estimado en kWh */}
-              <div className="mt-4 pt-4 border-t border-gray-200 flex justify-between items-center text-xs text-gray-600">
-                <span>Consumo mensual equivalente aproximado:</span>
-                <span className="font-bold text-[#0F2547] text-sm bg-white px-3 py-1 rounded-lg border border-gray-200">
-                  ~{formData.consumo_kwh_mensual} kWh / mes
-                </span>
-              </div>
+              <p className="mt-3 text-xs text-gray-500">
+                Al mover el deslizador se aproxima el consumo usando
+                190 CLP/kWh como supuesto, no como tarifa verificada.
+                Puedes corregir el consumo debajo.
+              </p>
             </div>
 
-            {/* Tipo de Red Eléctrica */}
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-gray-600 block mb-3">
-                Tipo de Conexión Eléctrica del Inmueble
+              <label
+                htmlFor="consumo-knn"
+                className="mb-2 block font-semibold text-gray-700"
+              >
+                Consumo mensual de tu boleta (kWh)
               </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, tipo_red: "monofasico" })}
-                  className={`text-left p-4 rounded-2xl border transition-all cursor-pointer ${
-                    formData.tipo_red === "monofasico"
-                      ? "bg-[#0F2547] text-white border-[#0F2547] shadow-md"
-                      : "bg-gray-50 text-gray-800 border-gray-200 hover:bg-gray-100"
-                  }`}
-                >
-                  <h3 className="font-bold text-sm">Monofásica (220V)</h3>
-                  <p className={`text-xs mt-1 ${formData.tipo_red === "monofasico" ? "text-gray-300" : "text-gray-500"}`}>
-                    La conexión estándar de la inmensa mayoría de casas y departamentos en Chile.
-                  </p>
-                </button>
 
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, tipo_red: "trifasico" })}
-                  className={`text-left p-4 rounded-2xl border transition-all cursor-pointer ${
-                    formData.tipo_red === "trifasico"
-                      ? "bg-[#0F2547] text-white border-[#0F2547] shadow-md"
-                      : "bg-gray-50 text-gray-800 border-gray-200 hover:bg-gray-100"
-                  }`}
-                >
-                  <h3 className="font-bold text-sm">Trifásica (380V)</h3>
-                  <p className={`text-xs mt-1 ${formData.tipo_red === "trifasico" ? "text-gray-300" : "text-gray-500"}`}>
-                    Común en parcelas con bombas de riego, talleres, galpones y locales comerciales.
-                  </p>
-                </button>
-              </div>
+              <input
+                id="consumo-knn"
+                type="number"
+                min="30"
+                max="1500"
+                step="any"
+                value={formData.consumo_kwh_mensual}
+                onChange={(event) =>
+                  actualizarCampo("consumo_kwh_mensual", event.target.value)
+                }
+                className={CLASE_INPUT}
+              />
+
+              <p className="mt-2 text-xs text-gray-500">
+                Este prototipo admite entre 30 y 1500 kWh al mes.
+              </p>
+
+              <ErrorCampo mensaje={errores.consumo_kwh_mensual} />
             </div>
 
-            <div className="flex justify-between pt-4 border-t border-gray-100">
+            <div>
+              <h3 className="mb-3 font-semibold text-gray-700">
+                Tipo de conexión eléctrica
+              </h3>
+
+              <Opciones
+                opciones={[
+                  {
+                    id: "monofasico",
+                    titulo: "Monofásica",
+                    descripcion: "Escenario admitido por el prototipo.",
+                  },
+                  {
+                    id: "trifasico",
+                    titulo: "Trifásica",
+                    descripcion:
+                      "Requiere evaluación técnica; no está validada en este catálogo.",
+                  },
+                ]}
+                seleccionado={formData.tipo_red}
+                onSeleccionar={(valor) =>
+                  actualizarCampo("tipo_red", valor)
+                }
+              />
+
+              <ErrorCampo mensaje={errores.tipo_red} />
+            </div>
+
+            <div className="flex justify-between gap-3 border-t pt-5">
               <button
                 type="button"
                 onClick={anteriorPaso}
-                className="btn btn-ghost text-gray-600 font-bold hover:bg-gray-100 rounded-xl px-6 cursor-pointer"
+                className={CLASE_SECUNDARIO}
               >
-                <FiArrowLeft className="mr-2" /> Atrás
+                <FiArrowLeft /> Atrás
               </button>
+
               <button
                 type="button"
                 onClick={siguientePaso}
-                className="btn bg-[#0F2547] text-white hover:bg-[#00fc82] hover:text-[#0F2547] border-none font-bold rounded-xl px-8 shadow-lg cursor-pointer"
+                className={CLASE_PRIMARIO}
               >
-                Siguiente Paso <FiArrowRight className="ml-2" />
+                Siguiente <FiArrowRight />
               </button>
             </div>
           </div>
         )}
 
-        {/* ================= PASO 3: OBJETIVO DEL SISTEMA ================= */}
+        {/* PASO 3: SISTEMA */}
         {paso === 3 && (
-          <div className="space-y-8">
+          <div className="space-y-7">
             <div>
-              <h2 className="text-xl md:text-2xl font-bold text-[#0F2547]">
-                ¿Cuál es tu objetivo con la energía solar?
+              <h2 className="text-2xl font-bold text-[#0F2547]">
+                ¿Qué sistema necesitas?
               </h2>
-              <p className="text-xs text-gray-500 mt-1">
-                Esto determina si requieres inversores de inyección a red, inversores híbridos o bancos de baterías de litio.
+
+              <p className="mt-2 text-sm text-gray-600">
+                Se filtran los kits según el sistema elegido.
+                El modelo no dimensiona inversores, baterías ni autonomía.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 gap-4">
-              {OBJETIVOS_SISTEMA.map((obj) => {
-                const seleccionado = formData.objetivo_sistema === obj.id;
-                const Icono = obj.icono;
+            <div className="space-y-3">
+              {OBJETIVOS_SISTEMA.map((opcion) => {
+                const activo = formData.objetivo_sistema === opcion.id;
+                const Icono = opcion.icono;
+
                 return (
                   <button
-                    key={obj.id}
+                    key={opcion.id}
                     type="button"
-                    onClick={() => setFormData({ ...formData, objetivo_sistema: obj.id })}
-                    className={`text-left p-5 rounded-2xl border transition-all cursor-pointer flex items-start gap-4 ${
-                      seleccionado
-                        ? "bg-[#0F2547] text-white border-[#0F2547] shadow-lg"
-                        : "bg-gray-50 text-gray-800 border-gray-200 hover:bg-gray-100"
+                    aria-pressed={activo}
+                    onClick={() =>
+                      actualizarCampo("objetivo_sistema", opcion.id)
+                    }
+                    className={`flex w-full items-start gap-4 rounded-2xl border p-5 text-left ${
+                      activo
+                        ? "border-[#0F2547] bg-[#0F2547] text-white"
+                        : "border-gray-200 bg-gray-50 text-gray-800"
                     }`}
                   >
-                    <div className={`p-3 rounded-xl mt-0.5 ${
-                      seleccionado ? "bg-[#00fc82] text-[#0F2547]" : "bg-white text-[#0F2547] border border-gray-200"
-                    }`}>
-                      <Icono size={22} />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-base">{obj.titulo}</h3>
-                      <p className={`text-xs mt-1 leading-relaxed ${seleccionado ? "text-gray-300" : "text-gray-500"}`}>
-                        {obj.desc}
-                      </p>
-                    </div>
+                    <Icono size={24} className="mt-1 shrink-0" />
+
+                    <span>
+                      <span className="block font-bold">
+                        {opcion.titulo}
+                      </span>
+
+                      <span
+                        className={`mt-1 block text-sm ${
+                          activo ? "text-gray-300" : "text-gray-500"
+                        }`}
+                      >
+                        {opcion.descripcion}
+                      </span>
+                    </span>
                   </button>
                 );
               })}
             </div>
 
-            {/* Rango de Presupuesto */}
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-gray-600 block mb-3">
-                Rango de Inversión Esperado (Opcional)
+              <label
+                htmlFor="presupuesto-knn"
+                className="mb-2 block font-semibold text-gray-700"
+              >
+                Presupuesto máximo para el kit (CLP, opcional)
               </label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {[
-                  { id: "economico", label: "Menos de $3.5M" },
-                  { id: "estandar", label: "$3.5M a $6.5M" },
-                  { id: "premium", label: "Más de $6.5M" },
-                  { id: "por_definir", label: "Por Definir" }
-                ].map((pre) => (
-                  <button
-                    key={pre.id}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, presupuesto_estimado: pre.id })}
-                    className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                      formData.presupuesto_estimado === pre.id
-                        ? "bg-[#0F2547] text-white border-[#0F2547]"
-                        : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
-                    }`}
-                  >
-                    {pre.label}
-                  </button>
-                ))}
-              </div>
+
+              <input
+                id="presupuesto-knn"
+                type="number"
+                min="1"
+                step="1"
+                placeholder="Ej. 3000000"
+                value={formData.presupuesto_max_clp}
+                onChange={(event) =>
+                  actualizarCampo("presupuesto_max_clp", event.target.value)
+                }
+                className={CLASE_INPUT}
+              />
+
+              <p className="mt-2 text-xs text-gray-500">
+                Déjalo vacío para no aplicar un límite de precio.
+              </p>
+
+              <ErrorCampo mensaje={errores.presupuesto_max_clp} />
             </div>
 
-            <div className="flex justify-between pt-4 border-t border-gray-100">
+            <div>
+              <label
+                htmlFor="superficie-knn"
+                className="mb-2 block font-semibold text-gray-700"
+              >
+                Superficie disponible (m², opcional)
+              </label>
+
+              <input
+                id="superficie-knn"
+                type="number"
+                min="0.1"
+                step="any"
+                placeholder="Ej. 25"
+                value={formData.superficie_disponible_m2}
+                onChange={(event) =>
+                  actualizarCampo(
+                    "superficie_disponible_m2",
+                    event.target.value
+                  )
+                }
+                className={CLASE_INPUT}
+              />
+
+              <ErrorCampo mensaje={errores.superficie_disponible_m2} />
+            </div>
+
+            <p className="text-sm text-gray-600">
+              Se asumen 4,8 horas solares pico, rendimiento del 80 % y
+              cobertura objetivo del 100 %. La comuna no modifica estos
+              supuestos. La superficie del kit es una aproximación.
+            </p>
+
+            <div className="flex justify-between gap-3 border-t pt-5">
               <button
                 type="button"
                 onClick={anteriorPaso}
-                className="btn btn-ghost text-gray-600 font-bold hover:bg-gray-100 rounded-xl px-6 cursor-pointer"
+                className={CLASE_SECUNDARIO}
               >
-                <FiArrowLeft className="mr-2" /> Atrás
+                <FiArrowLeft /> Atrás
               </button>
+
               <button
                 type="button"
                 onClick={siguientePaso}
-                className="btn bg-[#0F2547] text-white hover:bg-[#00fc82] hover:text-[#0F2547] border-none font-bold rounded-xl px-8 shadow-lg cursor-pointer"
+                className={CLASE_PRIMARIO}
               >
-                Siguiente Paso <FiArrowRight className="ml-2" />
+                Siguiente <FiArrowRight />
               </button>
             </div>
           </div>
         )}
 
-        {/* ================= PASO 4: DATOS DE CONTACTO ================= */}
+        {/* PASO 4: CONTACTO Y ENVÍO */}
         {paso === 4 && (
-          <form onSubmit={calcularCotizacionIA} noValidate className="space-y-6">
-            <div>
-              <h2 className="text-xl md:text-2xl font-bold text-[#0F2547]">
-                ¿A dónde enviamos tu propuesta técnica?
-              </h2>
-              <p className="text-xs text-gray-500 mt-1">
-                La IA procesará tus respuestas y generará el informe detallado en pantalla de inmediato.
-              </p>
-            </div>
-
-            <div className="space-y-4">
+          <form onSubmit={calcularCotizacionIA} noValidate>
+            <fieldset disabled={analizando} className="space-y-7">
               <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-gray-600 block mb-1.5">
-                  Nombre Completo
-                </label>
-                <div className="relative">
-                  <FiUser className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Ej. Andrés Silva"
-                    value={formData.nombre}
-                    maxLength={60}
-                    onChange={(e) => handleContactChange("nombre", e.target.value)}
-                    onBlur={() => handleContactBlur("nombre")}
-                    autoComplete="name"
-                    className={`w-full pl-11 pr-4 py-3 bg-gray-50 text-gray-900 placeholder:text-gray-400 rounded-2xl border text-sm outline-none transition-all ${getFieldClasses("nombre")}`}
-                  />
-                </div>
-                {errores.nombre && <p className="text-red-500 text-xs font-bold mt-1.5">{errores.nombre}</p>}
+                <h2 className="text-2xl font-bold text-[#0F2547]">
+                  Datos de contacto opcionales
+                </h2>
+
+                <p className="mt-2 text-sm text-gray-600">
+                  Puedes dejar estos campos vacíos. Esta consulta no guarda
+                  tus datos de contacto ni envía correos. El resultado se
+                  mostrará aquí.
+                </p>
               </div>
 
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-gray-600 block mb-1.5">
-                  Correo Electrónico
-                </label>
-                <div className="relative">
-                  <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="email"
-                    placeholder="Ej. andres@empresa.cl"
-                    value={formData.email}
-                    maxLength={80}
-                    onChange={(e) => handleContactChange("email", e.target.value)}
-                    onBlur={() => handleContactBlur("email")}
-                    autoComplete="email"
-                    className={`w-full pl-11 pr-4 py-3 bg-gray-50 text-gray-900 placeholder:text-gray-400 rounded-2xl border text-sm outline-none transition-all ${getFieldClasses("email")}`}
-                  />
-                </div>
-                {errores.email && <p className="text-red-500 text-xs font-bold mt-1.5">{errores.email}</p>}
+              {[
+                {
+                  campo: "nombre",
+                  titulo: "Nombre",
+                  tipo: "text",
+                  placeholder: "Tu nombre",
+                  maxLength: 60,
+                  autoComplete: "name",
+                  icono: FiUser,
+                },
+                {
+                  campo: "email",
+                  titulo: "Correo electrónico",
+                  tipo: "email",
+                  placeholder: "nombre@correo.cl",
+                  maxLength: 80,
+                  autoComplete: "email",
+                  icono: FiMail,
+                },
+                {
+                  campo: "telefono",
+                  titulo: "Teléfono",
+                  tipo: "tel",
+                  placeholder: "+56 9 1234 5678",
+                  maxLength: 16,
+                  autoComplete: "tel",
+                  icono: FiPhone,
+                },
+              ].map((item) => {
+                const Icono = item.icono;
+
+                return (
+                  <div key={item.campo}>
+                    <label
+                      htmlFor={`contacto-${item.campo}`}
+                      className="mb-2 block font-semibold text-gray-700"
+                    >
+                      {item.titulo}
+                    </label>
+
+                    <div className="relative">
+                      <Icono className="absolute left-3 top-4 text-gray-400" />
+
+                      <input
+                        id={`contacto-${item.campo}`}
+                        type={item.tipo}
+                        placeholder={item.placeholder}
+                        maxLength={item.maxLength}
+                        autoComplete={item.autoComplete}
+                        value={formData[item.campo]}
+                        onChange={(event) =>
+                          cambiarContacto(item.campo, event.target.value)
+                        }
+                        className={`${CLASE_INPUT} pl-10`}
+                      />
+                    </div>
+
+                    <ErrorCampo mensaje={errores[item.campo]} />
+                  </div>
+                );
+              })}
+
+              <div className="border-t border-gray-200 pt-5">
+                <h3 className="font-bold text-[#0F2547]">
+                  Resumen de la solicitud
+                </h3>
+
+                <p className="mt-2 text-sm text-gray-600">
+                  Consumo: {formData.consumo_kwh_mensual} kWh/mes.
+                </p>
+
+                <p className="mt-1 text-sm text-gray-600">
+                  Sistema:{" "}
+                  {
+                    OBJETIVOS_SISTEMA.find(
+                      (opcion) => opcion.id === formData.objetivo_sistema
+                    )?.titulo
+                  }
+                  .
+                </p>
+
+                <p className="mt-1 text-sm text-gray-600">
+                  Presupuesto máximo:{" "}
+                  {formData.presupuesto_max_clp
+                    ? formatearMoneda(Number(formData.presupuesto_max_clp))
+                    : "Sin límite indicado"}
+                  .
+                </p>
               </div>
 
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-gray-600 block mb-1.5">
-                  Teléfono / WhatsApp
-                </label>
-                <div className="relative">
-                  <FiPhone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="tel"
-                    placeholder="Ej. +56 9 8765 4321"
-                    value={formData.telefono}
-                    maxLength={16}
-                    onChange={(e) => handleContactChange("telefono", e.target.value)}
-                    onBlur={() => handleContactBlur("telefono")}
-                    autoComplete="tel"
-                    className={`w-full pl-11 pr-4 py-3 bg-gray-50 text-gray-900 placeholder:text-gray-400 rounded-2xl border text-sm outline-none transition-all ${getFieldClasses("telefono")}`}
-                  />
-                </div>
-                {errores.telefono && <p className="text-red-500 text-xs font-bold mt-1.5">{errores.telefono}</p>}
+              <div className="flex flex-wrap justify-between gap-3 border-t pt-5">
+                <button
+                  type="button"
+                  onClick={anteriorPaso}
+                  className={CLASE_SECUNDARIO}
+                >
+                  <FiArrowLeft /> Atrás
+                </button>
+
+                <button
+                  type="submit"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#00fc82] px-6 py-3 font-bold text-[#0F2547] disabled:opacity-50"
+                >
+                  <FiCpu />
+                  {analizando ? "Consultando KNN..." : "Recomendar kit"}
+                </button>
               </div>
-            </div>
-
-            <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200 flex items-center gap-3">
-              <FiShield className="text-[#0F2547] shrink-0" size={20} />
-              <p className="text-[11px] text-gray-500 leading-snug">
-                Tus datos están protegidos. Solo serán utilizados para entregarte la propuesta solar técnica y no serán compartidos con terceros.
-              </p>
-            </div>
-
-            <div className="flex justify-between pt-4 border-t border-gray-100">
-              <button
-                type="button"
-                onClick={anteriorPaso}
-                disabled={analizando}
-                className="btn btn-ghost text-gray-600 font-bold hover:bg-gray-100 rounded-xl px-6 cursor-pointer"
-              >
-                <FiArrowLeft className="mr-2" /> Atrás
-              </button>
-              <button
-                type="submit"
-                disabled={analizando}
-                className="btn bg-[#00fc82] text-[#0F2547] hover:bg-[#00fc82]/80 border-none font-extrabold rounded-xl px-8 shadow-lg shadow-[#00fc82]/30 cursor-pointer"
-              >
-                {analizando ? (
-                  <span className="flex items-center gap-2">
-                    <span className="loading loading-spinner loading-xs"></span>
-                    Dimensionando con IA...
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-2">
-                    <FiCpu /> Calcular con Inteligencia Artificial
-                  </span>
-                )}
-              </button>
-            </div>
+            </fieldset>
           </form>
         )}
 
-        {/* ================= PASO 5: RESULTADOS DE LA IA ================= */}
+        {/* PASO 5: RESULTADO DEL MODELO */}
         {paso === 5 && resultado && (
-          <div className="space-y-8 animate-fadeIn">
-            
-            {/* Cabecera del Resultado */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-gray-100">
+          <div className="space-y-7" aria-live="polite">
+            <div className="flex flex-col justify-between gap-4 border-b border-gray-100 pb-5 sm:flex-row">
               <div>
-                <span className="text-xs font-extrabold uppercase tracking-widest text-[#00fc82] bg-[#0F2547] px-3 py-1 rounded-full">
-                  Propuesta Técnica Preliminar IA
+                <span className="text-xs font-bold uppercase text-emerald-700">
+                  Resultado KNN · Prototipo
                 </span>
-                <h2 className="text-2xl md:text-3xl font-extrabold text-[#0F2547] mt-2">
-                  Kit Solar Óptimo para {formData.comuna}
+
+                <h2 className="mt-2 text-2xl font-bold text-[#0F2547]">
+                  {resultado.nombre}
                 </h2>
-                <p className="text-xs text-gray-500 mt-1">
-                  Generado para {formData.nombre} ({formData.email}) en base a un gasto de {formatearMoneda(formData.gasto_mensual_clp)}/mes.
+
+                <p className="mt-2 text-sm text-gray-600">
+                  Consumo considerado: {formData.consumo_kwh_mensual} kWh/mes.
+                </p>
+
+                <p className="mt-1 text-sm text-gray-600">
+                  Ubicación de referencia: {formData.comuna}.
+                  No se calculó radiación local.
                 </p>
               </div>
 
               <button
+                type="button"
                 onClick={reiniciarCotizador}
-                className="btn btn-sm btn-ghost text-gray-600 hover:bg-gray-100 rounded-xl font-bold text-xs"
+                className={CLASE_SECUNDARIO}
               >
-                <FiRotateCcw className="mr-1" /> Nueva Simulación
+                <FiRotateCcw /> Modificar
               </button>
             </div>
 
-            {/* Metricas Clave */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 text-center">
-                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block mb-1">Potencia Sugerida</span>
-                <span className="text-2xl md:text-3xl font-extrabold text-[#0F2547]">{resultado.potenciaRealKwp} kWp</span>
-                <span className="text-[10px] text-gray-500 block mt-1">Potencia instalada pico</span>
-              </div>
+            <div>
+              <p className="text-3xl font-bold text-[#0F2547]">
+                {formatearMoneda(resultado.precio_clp)}
+              </p>
 
-              <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 text-center">
-                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block mb-1">Paneles Solares</span>
-                <span className="text-2xl md:text-3xl font-extrabold text-[#0F2547]">{resultado.cantidadPaneles} uds.</span>
-                <span className="text-[10px] text-gray-500 block mt-1">Paneles 550W Tier-1</span>
-              </div>
-
-              <div className="bg-green-50/50 p-4 rounded-2xl border border-green-200 text-center">
-                <span className="text-[11px] font-bold text-green-700 uppercase tracking-wider block mb-1">Ahorro Estimado</span>
-                <span className="text-2xl md:text-3xl font-extrabold text-green-700">{formatearMoneda(resultado.ahorroAnualClp)}</span>
-                <span className="text-[10px] text-green-700 block mt-1">Por año en tu boleta</span>
-              </div>
-
-              <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 text-center">
-                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block mb-1">Retorno de Inversión</span>
-                <span className="text-2xl md:text-3xl font-extrabold text-[#0F2547]">~{resultado.retornoInversionAnios} años</span>
-                <span className="text-[10px] text-gray-500 block mt-1">Payback proyectado</span>
-              </div>
-            </div>
-
-            {/* Desglose de Equipamiento Sugerido */}
-            <div className="bg-gray-50 p-6 rounded-3xl border border-gray-200 space-y-4">
-              <h3 className="font-extrabold text-base text-[#0F2547]">
-                Equipamiento Principal Recomendado por el Algoritmo
-              </h3>
-
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3.5 bg-white rounded-xl border border-gray-200">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-[#0F2547]/5 flex items-center justify-center text-[#0F2547]">
-                      <FiSun size={18} />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-sm text-gray-800">Módulos Fotovoltaicos</h4>
-                      <p className="text-xs text-gray-500">{resultado.cantidadPaneles}x Paneles Monocristalinos 550W de Alta Eficiencia</p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-bold text-[#0F2547] bg-gray-100 px-2.5 py-1 rounded-md">
-                    {resultado.superficieTechoRequerida} m² de techo
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between p-3.5 bg-white rounded-xl border border-gray-200">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-[#0F2547]/5 flex items-center justify-center text-[#0F2547]">
-                      <FiZap size={18} />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-sm text-gray-800">Inversor Solar Central</h4>
-                      <p className="text-xs text-gray-500">{resultado.inversorSugerido}</p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-bold text-[#0F2547] bg-gray-100 px-2.5 py-1 rounded-md">
-                    Certificado SEC
-                  </span>
-                </div>
-
-                {resultado.bateriaSugerida && (
-                  <div className="flex items-center justify-between p-3.5 bg-white rounded-xl border border-gray-200">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-[#0F2547]/5 flex items-center justify-center text-[#0F2547]">
-                        <FiBatteryCharging size={18} />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-sm text-gray-800">Almacenamiento en Batería</h4>
-                        <p className="text-xs text-gray-500">{resultado.bateriaSugerida}</p>
-                      </div>
-                    </div>
-                    <span className="text-xs font-bold text-green-700 bg-green-100 px-2.5 py-1 rounded-md">
-                      Autonomía Nocturna
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Impacto Ambiental */}
-            <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 flex items-center gap-3">
-              <FiTrendingUp className="text-emerald-700 shrink-0" size={24} />
-              <p className="text-xs text-emerald-800 font-medium">
-                Con este sistema evitarás la emisión de aproximadamente <strong className="font-extrabold">{resultado.co2EvitadoToneladas} toneladas de CO2 al año</strong>, equivalente a plantar más de 45 árboles.
+              <p className="mt-2 text-sm text-gray-600">
+                Precio del catálogo de prueba. No es una cotización
+                definitiva de instalación.
               </p>
             </div>
 
-            {/* Botones de Accion */}
-            <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-gray-100 items-stretch sm:items-center">
+            <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+              {[
+                ["Potencia del kit", `${resultado.potencia_kwp} kWp`],
+                ["Paneles de 550 W", resultado.cantidad_paneles],
+                [
+                  "Energía mensual estimada",
+                  `${resultado.energia_mensual_estimada_kwh} kWh`,
+                ],
+                [
+                  "Superficie aproximada",
+                  `${resultado.superficie_estimada_m2} m²`,
+                ],
+                ["Stock consultado", resultado.stock],
+                ["ID del producto", resultado.producto_id],
+              ].map(([titulo, valor]) => (
+                <div
+                  key={titulo}
+                  className="rounded-2xl border border-gray-200 bg-gray-50 p-4"
+                >
+                  <dt className="text-xs text-gray-600">{titulo}</dt>
+
+                  <dd className="mt-2 text-xl font-bold text-[#0F2547]">
+                    {valor}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+
+            {resultado.ajustado_por_restricciones && (
+              <p className="text-sm text-gray-600">
+                La selección se ajustó según los kits disponibles y las
+                restricciones aplicadas por el servidor.
+              </p>
+            )}
+
+            <div>
+              <h3 className="font-bold text-[#0F2547]">
+                Alcance de la recomendación
+              </h3>
+
+              <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-gray-600">
+                {(Array.isArray(resultado.advertencias)
+                  ? resultado.advertencias
+                  : []
+                ).map((texto, indice) => (
+                  <li key={indice}>{texto}</li>
+                ))}
+              </ul>
+
+              <p className="mt-3 text-sm text-gray-600">
+                No se estiman ahorro económico, retorno de inversión ni
+                emisiones evitadas. La disponibilidad consultada no
+                constituye una reserva de stock.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-3 border-t border-gray-100 pt-5">
               <button
                 type="button"
                 onClick={reiniciarCotizador}
-                className="btn btn-ghost text-gray-600 font-bold hover:bg-gray-100 rounded-xl order-3 sm:order-1"
+                className={CLASE_SECUNDARIO}
               >
-                Volver a Modificar Datos
+                <FiRotateCcw /> Nueva recomendación
               </button>
-              
+
               <button
                 type="button"
-                onClick={() => {
-                  const kitPrecioEstimado = Math.max(1290000, Math.round(resultado.potenciaRealKwp * 850000));
-                  agregarAlCarrito({
-                    id: `kit-ia-${Math.round(resultado.potenciaRealKwp * 10)}`,
-                    nombre: `Kit Solar Fotovoltaico ${resultado.potenciaRealKwp} kWp (${resultado.cantidadPaneles} Paneles)`,
-                    descripcion: `Sistema dimensionado por IA para ${formData.comuna}: ${resultado.inversorSugerido}${resultado.bateriaSugerida ? ' + ' + resultado.bateriaSugerida : ''}`,
-                    precio: kitPrecioEstimado,
-                    es_kit: true,
-                    stock: 5,
-                    imagen_url: ""
-                  }, 1);
-                  setKitAgregado(true);
-                  setTimeout(() => setKitAgregado(false), 3000);
-                }}
-                className="btn bg-[#00fc82] text-[#0F2547] hover:bg-[#00e074] border-none font-black rounded-xl shadow-lg px-6 gap-2 order-1 sm:order-2"
+                onClick={agregarKitAlCarrito}
+                disabled={kitAgregado}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#00fc82] px-6 py-3 font-bold text-[#0F2547] disabled:opacity-50"
               >
-                <FiShoppingBag className="w-4 h-4" />
-                <span>{kitAgregado ? "¡Kit Añadido al Carrito!" : "Añadir Kit Sugerido al Carrito"}</span>
+                <FiShoppingBag />
+
+                {kitAgregado
+                  ? "Kit añadido al carrito"
+                  : "Añadir kit de prueba al carrito"}
               </button>
-
-              <a
-                href={`https://wa.me/56912345678?text=Hola,%20acabo%20de%20realizar%20la%20cotizaci%C3%B3n%20IA%20para%20${encodeURIComponent(formData.comuna)}%20con%20potencia%20estimada%20de%20${resultado.potenciaRealKwp}kWp.`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn bg-[#0F2547] text-white hover:bg-[#1a3865] border-none font-bold rounded-xl shadow-lg px-6 order-2 sm:order-3"
-              >
-                Hablar con un Ingeniero
-              </a>
             </div>
-
           </div>
         )}
-
       </div>
     </div>
   );

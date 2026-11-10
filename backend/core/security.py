@@ -1,72 +1,107 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
 import bcrypt
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
-from core.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
+from core.config import (
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    ALGORITHM,
+    SECRET_KEY,
+)
 from core.database import get_db
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login/")
+
 
 def get_password_hash(password: str) -> str:
-    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    if len(password.encode("utf-8")) > 72:
+        raise HTTPException(
+            422,
+            "La contraseña admite como máximo 72 bytes UTF-8.",
+        )
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return bcrypt.hashpw(
+        password.encode("utf-8"),
+        bcrypt.gensalt(),
+    ).decode("utf-8")
+
+
+def verify_password(plain_password, hashed_password):
     try:
-        return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
+        return bcrypt.checkpw(
+            plain_password.encode("utf-8"),
+            hashed_password.encode("utf-8"),
+        )
     except (ValueError, TypeError):
         return False
 
-def create_access_token(data: dict) -> str:
-    to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-def get_current_admin(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    credenciales_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="No se pudieron validar las credenciales",
-        headers={"WWW-Authenticate": "Bearer"},
+def create_access_token(data):
+    now = datetime.now(timezone.utc)
+
+    payload = {
+        **data,
+        "iat": now,
+        "exp": now + timedelta(
+            minutes=ACCESS_TOKEN_EXPIRE_MINUTES
+        ),
+    }
+
+    return jwt.encode(
+        payload,
+        SECRET_KEY,
+        algorithm=ALGORITHM,
     )
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
-        rol_id: int = payload.get("rol_id")
-        
-        if email is None or rol_id is None:
-            raise credenciales_exception
-    except Exception:
-        raise credenciales_exception
 
-    # rol_id 1 = Administrador
-    if rol_id != 1:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, 
-            detail="No tienes permisos de Administrador para realizar esta acción"
-        )
-        
-    return email
 
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    credenciales_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="No se pudieron validar las credenciales",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
-        if email is None:
-            raise credenciales_exception
-    except Exception:
-        raise credenciales_exception
-
+def get_current_user(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db),
+):
     import models
-    user = db.query(models.Usuario).filter(models.Usuario.email == email).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    invalid = HTTPException(
+        status_code=401,
+        detail="Sesión inválida o expirada.",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    try:
+        payload = jwt.decode(
+            token,
+            SECRET_KEY,
+            algorithms=[ALGORITHM],
+            options={"require": ["exp", "sub"]},
+        )
+
+        if not isinstance(payload["sub"], str):
+            raise invalid
+
+    except jwt.PyJWTError:
+        raise invalid
+
+    user = (
+        db.query(models.Usuario)
+        .filter(models.Usuario.email == payload["sub"])
+        .first()
+    )
+
+    if user is None:
+        raise invalid
+
     return user
 
+
+def get_current_admin(
+    user=Depends(get_current_user),
+):
+    if user.rol_id != 1:
+        raise HTTPException(
+            403,
+            "Se requiere rol administrador.",
+        )
+
+    return user.email

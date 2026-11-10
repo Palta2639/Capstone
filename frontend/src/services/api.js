@@ -130,6 +130,10 @@ export const cotizacionService = {
   updateEstado: async (id, nuevoEstado) => {
     const response = await api.put(`/cotizaciones/${id}?nuevo_estado=${nuevoEstado}`);
     return response.data;
+  },
+  recomendarKNN: async (payload) => {
+    const response = await api.post("/cotizaciones/knn", payload);
+    return response.data;
   }
 };
 
@@ -175,4 +179,5 @@ export const iaService = {
     const response = await api.post('/ia/chat', { message, history });
     return response.data;
   }
+
 };
