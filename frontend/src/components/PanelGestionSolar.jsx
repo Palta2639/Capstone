@@ -15,6 +15,9 @@ import {
   mensajeError,
 } from "@/src/utils/solicitudes";
 
+// Importamos el botón de Transbank que creaste (debe estar en la misma carpeta)
+import BotonPago from "./BotonPago"; 
+
 const pesos = valor =>
   valor == null
     ? "Sin costos completos"
@@ -952,6 +955,13 @@ export default function PanelGestionSolar({
                   </li>
                 ))}
               </ul>
+
+              {/* AQUÍ ESTÁ EL BOTÓN DE TRANSBANK PARA CLIENTES */}
+              {vista === "pedidos" && pedido.estado === "pendiente" && (
+                <div className="mt-3">
+                  <BotonPago monto={pedido.monto_total} ordenCompra={`pedido_${pedido.id}`} />
+                </div>
+              )}
 
               {vista === "admin" && (
                 <div className="flex gap-2">

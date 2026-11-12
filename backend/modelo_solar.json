@@ -1,0 +1,11 @@
+{
+  "origen": "simulado",
+  "perfiles": 4846,
+  "parametros": {
+    "knn__n_neighbors": 11,
+    "knn__weights": "distance"
+  },
+  "accuracy_test_sintetico": 0.9082474226804124,
+  "f1_macro_test_sintetico": 0.9093407846237014,
+  "advertencia": "Mide concordancia con etiquetas de una fórmula, no precisión con clientes reales."
+}

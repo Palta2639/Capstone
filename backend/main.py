@@ -3,6 +3,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
+from routers import pagos
 
 from core.config import CORS_ORIGINS
 from core.database import engine
@@ -43,6 +44,7 @@ for router in [
     ia.router,
 ]:
     app.include_router(router)
+    app.include_router(pagos.router)
 
 
 @app.get("/")

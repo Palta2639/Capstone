@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { 
@@ -25,6 +25,10 @@ export default function CheckoutPage() {
 
   const [procesando, setProcesando] = useState(false);
   const [errorEnvio, setErrorEnvio] = useState("");
+
+  // Estados para manejar Transbank
+  const [txData, setTxData] = useState(null);
+  const formRef = useRef(null);
 
   // Datos del cliente / entrega
   const [datosEntrega, setDatosEntrega] = useState({
@@ -84,6 +88,13 @@ export default function CheckoutPage() {
     e.preventDefault();
     setErrorEnvio("");
 
+    // Validación de sesión
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    if (!token) {
+      setErrorEnvio("Por favor, inicia sesión en tu cuenta para poder finalizar la compra.");
+      return;
+    }
+
     if (!datosEntrega.nombre || !datosEntrega.email || !datosEntrega.direccion || !datosEntrega.telefono) {
       setErrorEnvio("Por favor completa todos los campos requeridos de contacto y entrega.");
       return;
@@ -97,23 +108,55 @@ export default function CheckoutPage() {
     setProcesando(true);
 
     try {
-      // 1. Crear el pedido en el backend
+      const itemsPedido = carrito.map(item => ({
+        producto_id: Number(item.id),
+        cantidad: Number(item.cantidad)
+      }));
+
+      // Generamos un UUID válido (ej. 123e4567-e89b-12d3-a456-426614174000)
+      const claveOrden = crypto.randomUUID();
+      
       const resPedido = await orderService.create({
-        usuario_id: usuarioId || 1, // Usuario actual o fallback a cliente principal
-        monto_total: montoFinal,
+        clave: claveOrden,
+        items: itemsPedido,
+        entrega: {
+          nombre: datosEntrega.nombre, // Solucionado el error de campo requerido
+          direccion: datosEntrega.direccion,
+          comuna: datosEntrega.comuna,
+          telefono: datosEntrega.telefono
+        }
       });
 
-      // 2. Limpiar el carrito
-      vaciarCarrito();
+      // Transbank tiene un límite de 26 caracteres para buy_order, 
+      // así que usamos el ID de la base de datos o un trozo del UUID
+      const idParaTransbank = resPedido.id ? `ORD-${resPedido.id}` : claveOrden.substring(0, 26);
 
-      // 3. Redirigir a página de confirmación exitosa con número de orden
-      const idOrden = resPedido.id || Math.floor(1000 + Math.random() * 9000);
-      router.push(`/pago/exito?orden=ORD-${idOrden}`);
+      if (metodoPago === "webpay") {
+        const resWebpay = await fetch(`http://localhost:8000/pagos/crear?monto=${montoFinal}&orden_compra=${idParaTransbank}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const dataWebpay = await resWebpay.json();
+
+        if (dataWebpay.token && dataWebpay.url) {
+          setTxData(dataWebpay); 
+          
+          setTimeout(() => {
+            if (formRef.current) formRef.current.submit();
+          }, 100);
+          return;
+        } else {
+          throw new Error("No se recibió respuesta válida de Transbank.");
+        }
+      }
+
+      vaciarCarrito();
+      router.push(`/pago/exito?orden=${idParaTransbank}`);
+
     } catch (err) {
       console.error("Error al procesar pedido en checkout:", err);
-      // Si falla catastróficamente, enviar a vista de fallo
-      router.push("/pago/fallo");
-    } finally {
+      setErrorEnvio("Hubo un problema al procesar el pedido o contactar al banco. Por favor, intenta de nuevo.");
       setProcesando(false);
     }
   };
@@ -489,7 +532,7 @@ export default function CheckoutPage() {
                 className="btn w-full bg-[#00fc82] hover:bg-[#00e574] text-[#0F2547] font-black rounded-xl border-none shadow-lg text-sm sm:text-base h-13 tracking-wide gap-2 justify-center"
               >
                 {procesando ? (
-                  <span>Procesando Pedido...</span>
+                  <span>Conectando de forma segura...</span>
                 ) : (
                   <>
                     <FiLock className="w-4 h-4" />
@@ -497,6 +540,13 @@ export default function CheckoutPage() {
                   </>
                 )}
               </button>
+
+              {/* FORMULARIO OCULTO PARA ENVIAR DATOS A TRANSBANK */}
+              {txData && (
+                <form ref={formRef} action={txData.url} method="POST" className="hidden">
+                  <input type="hidden" name="token_ws" value={txData.token} />
+                </form>
+              )}
 
               <div className="text-[11px] text-gray-400 text-center leading-relaxed">
                 Al confirmar la orden aceptas los términos de garantía y certificación técnica de Anglo Electric SpA.
@@ -511,4 +561,3 @@ export default function CheckoutPage() {
     </div>
   );
 }
-
