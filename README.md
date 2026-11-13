@@ -9,7 +9,7 @@ Proyecto Capstone (APT) – Duoc UC.
 | Integrante | Rol |
 |---|---|
 | Cristopher Figueroa | Scrum Master y Desarrollador Backend |
-| Fiorella Osorio | Desarrolladora Frontend y UX/UI |
+| Fiorella Osorio | Product Owner & Frontend / UI-UX Developer|
 | David Valenzuela | Ingeniero de IA y Datos |
 | Kevin Peña | Analista de Datos, QA, Base de Datos e Integración (Docker) |
 
