@@ -1,4 +1,32 @@
+version: '3.8'
+
 services:
+  # --- 1. SERVICIOS DE LA APLICACIÓN ---
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: anglo_backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    restart: always
+
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: anglo_frontend
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    depends_on:
+      - backend
+    restart: always
+
+  # --- 2. SERVICIOS DE BASE DE DATOS LOCAL---
   db:
     image: postgres:16
     container_name: anglo_postgres
