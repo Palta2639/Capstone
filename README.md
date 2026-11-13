@@ -26,7 +26,7 @@ cd AngloElectric-Project
 
 1. Ingresar a la carpeta del backend:
    ```bash
-   cd backend
+   cd src/backend
    ```
 
 2. Crear y activar el entorno virtual:
@@ -59,7 +59,7 @@ cd AngloElectric-Project
 
 1. En una nueva terminal, ingresar a la carpeta del frontend:
    ```bash
-   cd frontend
+   cd src/frontend
    ```
 
 2. Instalar dependencias de Node:
