@@ -2,83 +2,117 @@
 
 Plataforma web modular para la venta de equipos solares fotovoltaicos, asesoría técnica con IA y cotizador solar automatizado para Chile.
 
----
+Proyecto Capstone (APT) – Duoc UC.
 
-## Requisitos Previos
+## Equipo
 
-* **Node.js** >= 18.17 (LTS recomendado)
-* **Python** >= 3.10
-* **Git**
+| Integrante | Rol |
+|---|---|
+| Cristopher Figueroa | Scrum Master y Desarrollador Backend |
+| Fiorella Osorio | Desarrolladora Frontend y UX/UI |
+| David Valenzuela | Ingeniero de IA y Datos |
+| Kevin Peña | Analista de Datos, QA, Base de Datos e Integración (Docker) |
 
----
+## Inicio rápido con Docker (recomendado)
 
-## Guía Rápida para Levantar el Proyecto
+Es la forma más simple: no requiere instalar Python ni Node ni crear archivos de configuración.
 
-### 1. Clonar el repositorio
+**Requisitos:** [Docker Desktop](https://www.docker.com/products/docker-desktop/) instalado y abierto. En Windows, además, WSL 2 activado (ejecutar `wsl --install` en PowerShell como administrador y reiniciar).
+
 ```bash
-git clone https://github.com/TU_USUARIO/TU_REPOSITORIO.git
-cd AngloElectric-Project
+git clone -b AngloElectric-APT https://github.com/Palta2639/Capstone.git
+cd Capstone
+docker compose up --build
 ```
 
----
+La primera vez tarda unos minutos. Cuando termine:
 
-### 2. Levantar el Backend (FastAPI)
+| Servicio | Dirección |
+|---|---|
+| Aplicación web | http://localhost:3000 |
+| API (Swagger) | http://localhost:8000/docs |
+| pgAdmin | http://localhost:5050 |
 
-1. Ingresar a la carpeta del backend:
-   ```bash
-   cd src/backend
-   ```
+Para detener el proyecto: `docker compose down`
 
-2. Crear y activar el entorno virtual:
-     ```bash
-     python -m venv venv
-     .\venv\Scripts\activate
-     ```
+> El proyecto incluye por defecto la conexión a la base de datos del equipo para facilitar su evaluación. Para usar otra base de datos, crear un archivo `.env` en la raíz a partir de `.env.example`.
 
-3. Instalar dependencias:
-   ```bash
-   pip install -r requirements.txt
-   ```
+## Instalación manual (sin Docker)
 
-4. Crear el archivo `.env` en la carpeta `backend/` con las credenciales de la base de datos:
-   ```ini
-   DATABASE_URL="postgresql://usuario:password@host/neondb?sslmode=require"
-   SECRET_KEY="clave_secreta_jwt"
-   ```
+**Requisitos:** Node.js >= 20.9, Python >= 3.10 y Git.
 
-5. Iniciar el servidor backend:
-   ```bash
-   uvicorn main:app --reload --port 8000
-   ```
-   * El backend quedará corriendo en: `http://localhost:8000`
-   * Documentación interactiva Swagger: `http://localhost:8000/docs`
+### 1. Backend (FastAPI)
 
----
-
-### 3. Levantar el Frontend (Next.js)
-
-1. En una nueva terminal, ingresar a la carpeta del frontend:
-   ```bash
-   cd src/frontend
-   ```
-
-2. Instalar dependencias de Node:
-   ```bash
-   npm install
-   ```
-
-3. Iniciar el servidor de desarrollo:
-   ```bash
-   npm run dev
-   ```
-   * La aplicación estará disponible en: `http://localhost:3000`
-
----
-
-### 4. Alternativa con Docker 
-
- Docker y Docker Compose instalado en tu equipo:
 ```bash
-docker-compose up --build
+cd src/backend
+python -m venv venv
 ```
 
+Activar el entorno virtual:
+
+- Windows: `venv\Scripts\activate`
+- macOS / Linux: `source venv/bin/activate`
+
+```bash
+pip install -r requirements.txt
+```
+
+Crear el archivo `src/backend/.env`:
+
+```
+DATABASE_URL=postgresql://usuario:password@host/neondb?sslmode=require
+SECRET_KEY=clave_de_al_menos_32_caracteres
+CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+```
+
+Para generar una `SECRET_KEY` válida:
+
+```bash
+python -c "import secrets; print(secrets.token_hex(32))"
+```
+
+Iniciar el servidor:
+
+```bash
+uvicorn main:app --reload --port 8000
+```
+
+### 2. Frontend (Next.js)
+
+En otra terminal:
+
+```bash
+cd src/frontend
+npm install
+npm run dev
+```
+
+La aplicación queda disponible en http://localhost:3000.
+
+## Pruebas
+
+```bash
+cd src/backend
+pip install pytest httpx
+pytest ../../tests/unitarias -v
+```
+
+El plan de pruebas y sus resultados están en `docs/05_pruebas/plan_pruebas.pdf`, y las evidencias en `evidencias/pruebas/`.
+
+## Estructura del repositorio
+
+```
+├── src/
+│   ├── backend/        API FastAPI, modelo KNN y Dockerfile
+│   └── frontend/       Aplicación Next.js y Dockerfile
+├── docs/               Documentos del proyecto (inicio, requisitos, diseño, pruebas, trazabilidad)
+├── agil/               Product backlog y Definition of Done
+├── tests/              Pruebas unitarias e integración (Postman)
+├── evidencias/         Evidencias de pruebas, sprints y despliegue
+├── docker-compose.yml
+└── .env.example
+```
+
+## Tecnologías
+
+Next.js 16 · React · FastAPI · PostgreSQL (Neon) · SQLAlchemy · Scikit-Learn (KNN) · Docker · Webpay (Transbank)
