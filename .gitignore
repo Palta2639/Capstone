@@ -109,3 +109,7 @@ desktop.ini
 .antigravity/
 AGENTS.md
 */AGENTS.md
+# --- EXCEPCIONES: DOCUMENTACION DEL PROYECTO APT ---
+!docs/**/*.xlsx
+!agil/*.xlsx
+!docs/04_diseno/base_de_datos/*.sql
